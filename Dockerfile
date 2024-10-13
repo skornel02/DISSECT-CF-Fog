@@ -21,7 +21,7 @@ RUN mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip
 
 WORKDIR /app/structure_optimizer
 
-RUN mvn clean build
+RUN mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip
 
 # Set the default command to run when starting the container
 CMD ["mvn", "spring-boot:run"]
