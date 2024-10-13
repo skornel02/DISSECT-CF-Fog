@@ -27,25 +27,6 @@ import java.util.HashMap;
 public class StructureOptimizerApplication {
 
 	public static void main(String[] args) throws Exception {
-		SimLogger.setLogging(2, true);
-
-		HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture = getWorkflowArchitecutre();
-		//ArrayList<Actuator> actuatorArchitecture = getActuatorArchitecture();
-
-		String workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/CyberShake_100.xml";
-		workflowFile = ScientificWorkflowParser.parseToIotWorkflow(workflowFile);
-
-
-		WorkflowJobModel.loadWorkflowXml(workflowFile);
-
-		new WorkflowExecutor(new MaxMinScheduler(workflowArchitecture));
-		//new WorkflowExecutor(new IotWorkflowScheduler(workflowArchitecture, actuatorArchitecture, 1000));
-
-		Timed.simulateUntilLastEvent();
-		ScenarioBase.logStreamProcessing();
-		WorkflowGraphVisualiser.generateDag(ScenarioBase.scriptPath, ScenarioBase.resultDirectory, workflowFile);
-		TimelineVisualiser.generateTimeline(ScenarioBase.resultDirectory);
-
 		SpringApplication.run(StructureOptimizerApplication.class, args);
 	}
 
@@ -57,7 +38,7 @@ public class StructureOptimizerApplication {
 		return actuatorArchitecture;
 	}
 
-	private static HashMap<WorkflowComputingAppliance, Instance> getWorkflowArchitecutre() throws Exception {
+	public static HashMap<WorkflowComputingAppliance, Instance> getWorkflowArchitecutre() throws Exception {
 
 		String cloudfile = ScenarioBase.resourcePath + "LPDS_original.xml";
 
