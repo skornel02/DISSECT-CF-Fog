@@ -14,6 +14,8 @@ import hu.u_szeged.inf.fog.simulator.iot.mobility.GeoLocation;
 import hu.u_szeged.inf.fog.simulator.util.EnergyDataCollector;
 import hu.u_szeged.inf.fog.simulator.util.SimLogger;
 import hu.u_szeged.inf.fog.simulator.util.TimelineVisualiser.TimelineEntry;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import javax.xml.parsers.ParserConfigurationException;
@@ -25,7 +27,7 @@ import org.xml.sax.SAXException;
  * physical machines form a hierarchical structure.
  * This representation fits the batch processing-based evaluation.
  */
-public class ComputingAppliance {
+public class ComputingAppliance implements AutoCloseable {
 
     /**
      * Ensures a common virtual image file with 1 GB of disk size requirement.
@@ -268,5 +270,14 @@ public class ComputingAppliance {
      */
     public static ArrayList<ComputingAppliance> getAllComputingAppliances() {
         return allComputingAppliances;
+    }
+
+    /**
+     * Closes the computing appliance and removes it from the list of all computing appliances.
+     * @throws Exception if an error occurs during the closing process
+     */
+    @Override
+    public void close() throws Exception {
+        ComputingAppliance.allComputingAppliances.remove(this);
     }
 }
