@@ -50,36 +50,37 @@
 
                     <!-- Log in accordion-->
                     <div class="col-12 my-4">
-                        <div class="accordion" id="logAccordion">
+                        <div class="accordion" th:id="'accordion-' + ${simulation.getId()}">
                             <div class="accordion-item">
-                                <h2 class="accordion-header" id="headingOne">
+                                <h2 class="accordion-header">
                                     <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                            data-bs-target="#collapseOne" aria-expanded="true"
-                                            aria-controls="collapseOne">
+                                            th:data-bs-target="'#collapse-log-' + ${simulation.getId()}" aria-expanded="true"
+                                            th:aria-controls="'collapse-log-' + ${simulation.getId()}">
                                         Logs
                                     </button>
                                 </h2>
-                                <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
-                                     data-bs-parent="#logAccordion">
+                                <div th:id="'collapse-log-' + ${simulation.getId()}"
+                                     class="accordion-collapse collapse"
+                                     th:data-bs-parent="'#accordion-' + ${simulation.getId()}">
                                     <div class="accordion-body">
                                         <pre><code th:text="${result.getLogs()}"></code></pre>
                                     </div>
                                 </div>
-                                <!-- Errors if exists -->
-                                <div class="accordion-item" th:if="${result.getException() != null}">
-                                    <h2 class="accordion-header" id="headingTwo">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                                data-bs-target="#collapseTwo" aria-expanded="true"
-                                                aria-controls="collapseTwo">
-                                            Error - <span th:text="${result.getErrorMessage()}"></span>
-                                        </button>
-                                    </h2>
-                                    <div id="collapseTwo" class="accordion-collapse collapse show"
-                                         aria-labelledby="headingTwo"
-                                         data-bs-parent="#logAccordion">
-                                        <div class="accordion-body">
-                                            <pre><code th:text="${result.getErrorStackTrace()}"></code></pre>
-                                        </div>
+                            </div>
+                            <!-- Errors if exists -->
+                            <div class="accordion-item" th:if="${result.getException() != null}">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                            th:data-bs-target="'#collapse-error-' + ${simulation.getId()}" aria-expanded="true"
+                                            th:aria-controls="'collapse-error-' + ${simulation.getId()}">
+                                        Error - <span th:text="${result.getErrorMessage()}"></span>
+                                    </button>
+                                </h2>
+                                <div th:id="'collapse-error-' + ${simulation.getId()}"
+                                     class="accordion-collapse collapse show"
+                                     th:data-bs-parent="'#accordion-' + ${simulation.getId()}">
+                                    <div class="accordion-body">
+                                        <pre><code th:text="${result.getErrorStackTrace()}"></code></pre>
                                     </div>
                                 </div>
                             </div>

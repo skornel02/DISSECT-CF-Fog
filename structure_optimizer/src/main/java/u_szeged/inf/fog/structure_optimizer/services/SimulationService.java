@@ -24,6 +24,7 @@ import u_szeged.inf.fog.structure_optimizer.utils.SimpleLogHandler;
 
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -148,9 +149,32 @@ public class SimulationService {
 
     private HashMap<WorkflowComputingAppliance, Instance> getWorkflowArchitecture(SimulationModel model) throws Exception {
 
+        HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture = new HashMap<>();
+
         String cloudfile = ScenarioBase.resourcePath + "LPDS_original.xml";
 
-        WorkflowComputingAppliance cloud1 = new WorkflowComputingAppliance(cloudfile, "cloud1", new GeoLocation(0, 0), 1000);
+        VirtualAppliance va = new VirtualAppliance("va", 100, 0, false, 1073741824L);
+
+        AlterableResourceConstraints arc1 = new AlterableResourceConstraints(2, 0.001, 4294967296L);
+        //AlterableResourceConstraints arc2 = new AlterableResourceConstraints(4, 0.001, 4294967296L);
+
+        for (int i = 0 ; i < model.getCloudCount() ; i++) {
+            WorkflowComputingAppliance cloud1 = new WorkflowComputingAppliance(cloudfile, "cloud" + i, new GeoLocation(0, 0), 1000);
+
+            Instance instance1 = new Instance("instance1", va, arc1, 0.051 / 60 / 60 / 1000, 1);
+            //Instance instance2 = new Instance("instance2", va, arc2, 0.102 / 60 / 60 / 1000, 1);
+
+            workflowArchitecture.put(cloud1, instance1);
+
+            if (i != 0) {
+                var base = workflowArchitecture.keySet()
+                        .stream()
+                        .filter(cloud -> Objects.equals(cloud.name, "cloud1"))
+                        .findFirst();
+
+                base.get().addNeighbor(cloud1, 100);
+            }
+        }
 
 //        WorkflowComputingAppliance fog1 = new WorkflowComputingAppliance(cloudfile, "fog1", new GeoLocation(0, 10), 1000);
 //        WorkflowComputingAppliance fog2 = new WorkflowComputingAppliance(cloudfile, "fog2", new GeoLocation(10, 10), 1000);
@@ -169,16 +193,6 @@ public class SimulationService {
 //        fog3.setParent(cloud1, 80);
 //        fog4.setParent(cloud1, 90);
 
-        VirtualAppliance va = new VirtualAppliance("va", 100, 0, false, 1073741824L);
-
-        AlterableResourceConstraints arc1 = new AlterableResourceConstraints(2, 0.001, 4294967296L);
-        //AlterableResourceConstraints arc2 = new AlterableResourceConstraints(4, 0.001, 4294967296L);
-
-        Instance instance1 = new Instance("instance1", va, arc1, 0.051 / 60 / 60 / 1000, 1);
-        //Instance instance2 = new Instance("instance2", va, arc2, 0.102 / 60 / 60 / 1000, 1);
-
-        HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture = new HashMap<WorkflowComputingAppliance, Instance>();
-        workflowArchitecture.put(cloud1, instance1);
 //        workflowArchitecture.put(fog1, instance1);
 //        workflowArchitecture.put(fog2, instance1);
 //        workflowArchitecture.put(fog3, instance1);

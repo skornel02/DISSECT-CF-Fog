@@ -6,12 +6,14 @@ import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
 
+import java.util.Random;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
 @Getter
 public class RandomSimulationOptimization extends BaseSimulationOptimization {
 
+    private final Random random = new Random();
     private final int iteraations;
 
     private final Thread worker;
@@ -32,6 +34,8 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
         for (int i = 0; i < iteraations; i++) {
             var simulation = new SimulationModel();
             simulation.setId(UUID.randomUUID().toString());
+
+            simulation.setCloudCount(random.nextInt(10) + 1);
 
             simulations.add(simulation);
         }

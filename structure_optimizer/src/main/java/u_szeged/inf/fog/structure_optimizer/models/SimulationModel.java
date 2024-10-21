@@ -11,6 +11,8 @@ public class SimulationModel {
 
     private SimulationStatus status = SimulationStatus.Waiting;
 
+    private int cloudCount;
+
     private SimulationResult result;
 
     public Optional<SimulationResult> getResult() {
