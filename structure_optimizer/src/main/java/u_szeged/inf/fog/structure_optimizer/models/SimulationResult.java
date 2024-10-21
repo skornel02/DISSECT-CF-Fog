@@ -17,6 +17,9 @@ public class SimulationResult {
     private double totalEnergyConsumption;
     private long executionTime;
 
+    private int totalTasks;
+    private int completedTasks;
+
     private Exception exception;
 
     public String getErrorMessage() {
