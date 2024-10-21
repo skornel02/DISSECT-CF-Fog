@@ -4,6 +4,7 @@
             <div class="card-header">
                 Simulation <span th:text="${simulation.getId()}"></span> - <span
                     th:text="${simulation.getStatus()}"></span>
+                <span th:if="${simulation.getResult().isPresent() && simulation.getResult().get().getErrorMessage() != null}" class="badge text-bg-danger">Failed</span>
             </div>
             <div class="card-body">
                 <p class="card-text" th:unless="${simulation.getResult().isPresent()}">
@@ -50,7 +51,7 @@
 
                     <!-- Log in accordion-->
                     <div class="col-12 my-4">
-                        <div class="accordion" th:id="'accordion-' + ${simulation.getId()}">
+                        <div class="accordion">
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
                                     <button class="accordion-button" type="button" data-bs-toggle="collapse"
@@ -60,15 +61,14 @@
                                     </button>
                                 </h2>
                                 <div th:id="'collapse-log-' + ${simulation.getId()}"
-                                     class="accordion-collapse collapse"
-                                     th:data-bs-parent="'#accordion-' + ${simulation.getId()}">
+                                     class="accordion-collapse collapse">
                                     <div class="accordion-body">
                                         <pre><code th:text="${result.getLogs()}"></code></pre>
                                     </div>
                                 </div>
                             </div>
                             <!-- Errors if exists -->
-                            <div class="accordion-item" th:if="${result.getException() != null}">
+                            <div class="accordion-item" th:if="${result.getErrorMessage()}">
                                 <h2 class="accordion-header">
                                     <button class="accordion-button" type="button" data-bs-toggle="collapse"
                                             th:data-bs-target="'#collapse-error-' + ${simulation.getId()}" aria-expanded="true"
@@ -77,8 +77,7 @@
                                     </button>
                                 </h2>
                                 <div th:id="'collapse-error-' + ${simulation.getId()}"
-                                     class="accordion-collapse collapse show"
-                                     th:data-bs-parent="'#accordion-' + ${simulation.getId()}">
+                                     class="accordion-collapse collapse show">
                                     <div class="accordion-body">
                                         <pre><code th:text="${result.getErrorStackTrace()}"></code></pre>
                                     </div>

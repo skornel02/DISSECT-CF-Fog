@@ -35,15 +35,17 @@ public class SimulationService {
 
     private static final Logger logger = Logger.getLogger(SimulationService.class.getName());
     private static final Object lock = new Object();
+
     private static final Pattern TotalCostPattern = Pattern.compile("Total cost: (\\d+\\.\\d+)");
     private static final Pattern TotalEnergyConsumptionPattern = Pattern.compile("Total energy consumption: (\\d+\\.\\d+)");
     private static final Pattern ExecutionTime = Pattern.compile("Real execution time (\\d+)ms");
+    private static final Pattern TaskCompleted = Pattern.compile("Completed: (\\d+)/(\\d+)");
 
     public SimulationService() {
     }
 
     public SimulationResult RunSimulation(SimulationModel model) {
-        var result = SimulationResult.builder()
+        var resultBuiilder = SimulationResult.builder()
                 .id(model.getId());
 
         HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture = null;
@@ -82,7 +84,7 @@ public class SimulationService {
             } catch (Exception e) {
                 SimLogger.simLogger.log(Level.SEVERE, e.getMessage(), e);
 
-                result = result.exception(e);
+                resultBuiilder = resultBuiilder.exception(e);
             } finally {
                 for (var entry : workflowArchitecture.keySet()) {
                     try {
@@ -104,6 +106,8 @@ public class SimulationService {
             var totalCost = -1.0;
             var totalEnergyConsumption = -1.0;
             var executionTime = -1L;
+            var totalTasks = -1;
+            var completedTasks = -1;
 
             if (!logs.isEmpty()) {
                 var totalCostMatcher = TotalCostPattern.matcher(logs);
@@ -129,13 +133,28 @@ public class SimulationService {
                     } catch (Exception ignored) {
                     }
                 }
+
+                var taskCompletedMatcher = TaskCompleted.matcher(logs);
+                if (taskCompletedMatcher.find()) {
+                    try {
+                        completedTasks = Integer.parseInt(taskCompletedMatcher.group(1));
+                        totalTasks = Integer.parseInt(taskCompletedMatcher.group(2));
+                    } catch (Exception ignored) {
+                    }
+                }
             }
 
-            var finishedResult = result
+            if (totalTasks > completedTasks) {
+                resultBuiilder = resultBuiilder.exception(new Exception("Not all tasks were completed"));
+            }
+
+            var finishedResult = resultBuiilder
                     .resultDirectory(ScenarioBase.resultDirectory)
                     .logs(logs.toString())
                     .totalCost(totalCost)
                     .totalEnergyConsumption(totalEnergyConsumption)
+                    .totalTasks(totalTasks)
+                    .completedTasks(completedTasks)
                     .executionTime(executionTime)
                     .build();
 
@@ -156,24 +175,23 @@ public class SimulationService {
         VirtualAppliance va = new VirtualAppliance("va", 100, 0, false, 1073741824L);
 
         AlterableResourceConstraints arc1 = new AlterableResourceConstraints(2, 0.001, 4294967296L);
-        //AlterableResourceConstraints arc2 = new AlterableResourceConstraints(4, 0.001, 4294967296L);
+        AlterableResourceConstraints arc2 = new AlterableResourceConstraints(4, 0.001, 4294967296L);
 
-        for (int i = 0 ; i < model.getCloudCount() ; i++) {
-            WorkflowComputingAppliance cloud1 = new WorkflowComputingAppliance(cloudfile, "cloud" + i, new GeoLocation(0, 0), 1000);
+        WorkflowComputingAppliance cloud1 = new WorkflowComputingAppliance(cloudfile, "cloud1", new GeoLocation(0, 0), 1000);
 
-            Instance instance1 = new Instance("instance1", va, arc1, 0.051 / 60 / 60 / 1000, 1);
-            //Instance instance2 = new Instance("instance2", va, arc2, 0.102 / 60 / 60 / 1000, 1);
+        Instance instance1 = new Instance("instance1", va, arc1, 0.051 / 60 / 60 / 1000, 1);
+        //Instance instance2 = new Instance("instance2", va, arc2, 0.102 / 60 / 60 / 1000, 1);
 
-            workflowArchitecture.put(cloud1, instance1);
+        workflowArchitecture.put(cloud1, instance1);
 
-            if (i != 0) {
-                var base = workflowArchitecture.keySet()
-                        .stream()
-                        .filter(cloud -> Objects.equals(cloud.name, "cloud1"))
-                        .findFirst();
+        if (model.getCloudCount() > 1) {
+            WorkflowComputingAppliance cloud2 = new WorkflowComputingAppliance(cloudfile, "cloud2", new GeoLocation(0, 0), 1000);
 
-                base.get().addNeighbor(cloud1, 100);
-            }
+            Instance instance2 = new Instance("instance2", va, arc2, 0.102 / 60 / 60 / 1000, 1);
+
+            workflowArchitecture.put(cloud2, instance2);
+
+            cloud2.addNeighbor(cloud1, 100);
         }
 
 //        WorkflowComputingAppliance fog1 = new WorkflowComputingAppliance(cloudfile, "fog1", new GeoLocation(0, 10), 1000);
