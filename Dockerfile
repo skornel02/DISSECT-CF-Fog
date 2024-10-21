@@ -20,7 +20,9 @@ RUN mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip
 WORKDIR /app/structure_optimizer
 RUN mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip
 
+WORKDIR /app/simulator
 RUN pip install -r ./src/main/resources/script/requirement.txt
 
 # Set the default command to run when starting the container
+WORKDIR /app/structure_optimizer
 CMD ["mvn", "spring-boot:run"]
