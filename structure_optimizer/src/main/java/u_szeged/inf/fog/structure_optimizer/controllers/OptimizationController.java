@@ -61,13 +61,15 @@ public class OptimizationController {
     public String optimize(Model model, @RequestParam String uuid) {
         model.addAttribute("uuid", uuid);
 
-        try {
-            var simulation = new RandomSimulationOptimization(simulationService, uuid, 100);
+        if (!simulations.containsKey(uuid)) {
+            try {
+                var simulation = new RandomSimulationOptimization(simulationService, uuid, 10);
 
-            simulations.put(uuid, simulation);
-            simulation.start();
-        } catch (Exception ex) {
+                simulations.put(uuid, simulation);
+                simulation.start();
+            } catch (Exception ex) {
 
+            }
         }
 
         return "optimize";
