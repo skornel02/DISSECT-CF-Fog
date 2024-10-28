@@ -58,6 +58,12 @@
 			<artifactId>jenetics</artifactId>
 			<version>8.1.0</version>
 		</dependency>
+		<dependency>
+			<groupId>io.jenetics</groupId>
+			<artifactId>jenetics.ext</artifactId>
+			<version>8.1.0</version>
+		</dependency>
+
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

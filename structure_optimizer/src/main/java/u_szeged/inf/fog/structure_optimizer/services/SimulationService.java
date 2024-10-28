@@ -3,10 +3,18 @@ package u_szeged.inf.fog.structure_optimizer.services;
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.AlterableResourceConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.io.VirtualAppliance;
+import hu.u_szeged.inf.fog.simulator.agent.ResourceAgent;
+import hu.u_szeged.inf.fog.simulator.application.Application;
 import hu.u_szeged.inf.fog.simulator.demo.ScenarioBase;
+import hu.u_szeged.inf.fog.simulator.iot.Device;
+import hu.u_szeged.inf.fog.simulator.iot.Sensor;
+import hu.u_szeged.inf.fog.simulator.iot.SmartDevice;
 import hu.u_szeged.inf.fog.simulator.iot.mobility.GeoLocation;
+import hu.u_szeged.inf.fog.simulator.iot.mobility.MobilityEvent;
+import hu.u_szeged.inf.fog.simulator.node.ComputingAppliance;
 import hu.u_szeged.inf.fog.simulator.node.WorkflowComputingAppliance;
 import hu.u_szeged.inf.fog.simulator.provider.Instance;
+import hu.u_szeged.inf.fog.simulator.provider.Provider;
 import hu.u_szeged.inf.fog.simulator.util.SimLogger;
 import hu.u_szeged.inf.fog.simulator.util.TimelineVisualiser;
 import hu.u_szeged.inf.fog.simulator.util.WorkflowGraphVisualiser;
@@ -15,6 +23,7 @@ import hu.u_szeged.inf.fog.simulator.util.xml.WorkflowJobModel;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowExecutor;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowJob;
 import hu.u_szeged.inf.fog.simulator.workflow.scheduler.MaxMinScheduler;
+import hu.u_szeged.inf.fog.simulator.workflow.scheduler.WorkflowScheduler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
@@ -24,7 +33,8 @@ import u_szeged.inf.fog.structure_optimizer.utils.SimpleLogHandler;
 
 import java.nio.file.Files;
 import java.util.HashMap;
-import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -33,188 +43,200 @@ import java.util.regex.Pattern;
 @Service
 public class SimulationService {
 
-    private static final Logger logger = Logger.getLogger(SimulationService.class.getName());
-    private static final Object lock = new Object();
-
     private static final Pattern TotalCostPattern = Pattern.compile("Total cost: (\\d+\\.\\d+)");
     private static final Pattern TotalEnergyConsumptionPattern = Pattern.compile("Total energy consumption: (\\d+\\.\\d+)");
     private static final Pattern ExecutionTime = Pattern.compile("Real execution time (\\d+)ms");
     private static final Pattern TaskCompleted = Pattern.compile("Completed: (\\d+)/(\\d+)");
 
+    private static final Lock lock = new ReentrantLock();
+
     public SimulationService() {
     }
 
-    public SimulationResult RunSimulation(SimulationModel model) {
+    public SimulationResult runSimulation(SimulationModel model) {
         var resultBuiilder = SimulationResult.builder()
                 .id(model.getId());
 
         HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture = null;
 
-        synchronized (lock) {
-            model.setStatus(SimulationStatus.Processing);
+        lock.lock();
 
-            var logs = new StringBuffer();
-            var logHandler = new SimpleLogHandler(log -> {
-                logs.append(log.getLevel().toString())
-                        .append(" | ")
-                        .append(log.getMessage())
-                        .append("\n");
-            });
-            SimLogger.simLogger.addHandler(logHandler);
-            SimLogger.setLogging(2, false);
+        model.setStatus(SimulationStatus.Processing);
 
-            try {
-                // create a new temp directory
-                var nextTempDirectory = Files.createTempDirectory("structure_optimizer-" + model.getId()).toFile();
-                ScenarioBase.resultDirectory = nextTempDirectory.getAbsolutePath();
+        var logs = new StringBuffer();
+        var logHandler = new SimpleLogHandler(log -> {
+            logs.append(log.getLevel().toString())
+                    .append(" | ")
+                    .append(log.getMessage())
+                    .append("\n");
+        });
+        SimLogger.simLogger.addHandler(logHandler);
+        SimLogger.setLogging(2, false);
 
-                workflowArchitecture = getWorkflowArchitecture(model);
+        try {
+            // create a new temp directory
+            var nextTempDirectory = Files.createTempDirectory("structure_optimizer-" + model.getId()).toFile();
+            ScenarioBase.resultDirectory = nextTempDirectory.getAbsolutePath();
 
-                String workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/CyberShake_100.xml";
-                workflowFile = ScientificWorkflowParser.parseToIotWorkflow(workflowFile);
+            workflowArchitecture = getWorkflowArchitecture(model);
 
-                WorkflowJobModel.loadWorkflowXml(workflowFile);
+            String workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/CyberShake_100.xml";
+            workflowFile = ScientificWorkflowParser.parseToIotWorkflow(workflowFile);
 
-                new WorkflowExecutor(new MaxMinScheduler(workflowArchitecture));
+            WorkflowJobModel.loadWorkflowXml(workflowFile);
 
-                Timed.simulateUntilLastEvent();
-                ScenarioBase.logStreamProcessing();
-                WorkflowGraphVisualiser.generateDag(ScenarioBase.scriptPath, ScenarioBase.resultDirectory, workflowFile);
-                TimelineVisualiser.generateTimeline(ScenarioBase.resultDirectory);
-            } catch (Exception e) {
-                SimLogger.simLogger.log(Level.SEVERE, e.getMessage(), e);
+            new WorkflowExecutor(new MaxMinScheduler(workflowArchitecture));
 
-                resultBuiilder = resultBuiilder.exception(e);
-            } finally {
-                for (var entry : workflowArchitecture.keySet()) {
-                    try {
-                        entry.close();
-                    } catch (Exception ex) {
-                        logger.log(Level.SEVERE, ex.getMessage(), ex);
-                    }
-                }
+            Timed.simulateUntilLastEvent();
+            ScenarioBase.logStreamProcessing();
+            WorkflowGraphVisualiser.generateDag(ScenarioBase.scriptPath, ScenarioBase.resultDirectory, workflowFile);
+            TimelineVisualiser.generateTimeline(ScenarioBase.resultDirectory);
+        } catch (Exception e) {
+            SimLogger.simLogger.log(Level.SEVERE, e.getMessage(), e);
 
-                WorkflowJob.workflowJobs.clear();
-                WorkflowJob.numberOfStartedWorkflowJobs = 0;
-                WorkflowExecutor.vmTaskLogger.clear();
-                WorkflowExecutor.actuatorReassigns.clear();
-                WorkflowExecutor.jobReassigns.clear();
-
-                SimLogger.simLogger.removeHandler(logHandler);
-            }
-
-            var totalCost = -1.0;
-            var totalEnergyConsumption = -1.0;
-            var executionTime = -1L;
-            var totalTasks = -1;
-            var completedTasks = -1;
-
-            if (!logs.isEmpty()) {
-                var totalCostMatcher = TotalCostPattern.matcher(logs);
-                if (totalCostMatcher.find()) {
-                    try {
-                        totalCost = Double.parseDouble(totalCostMatcher.group(1));
-                    } catch (Exception ignored) {
-                    }
-                }
-
-                var totalEnergyConsumptionMatcher = TotalEnergyConsumptionPattern.matcher(logs);
-                if (totalEnergyConsumptionMatcher.find()) {
-                    try {
-                        totalEnergyConsumption = Double.parseDouble(totalEnergyConsumptionMatcher.group(1));
-                    } catch (Exception ignored) {
-                    }
-                }
-
-                var executionTimeMatcher = ExecutionTime.matcher(logs);
-                if (executionTimeMatcher.find()) {
-                    try {
-                        executionTime = Long.parseLong(executionTimeMatcher.group(1));
-                    } catch (Exception ignored) {
-                    }
-                }
-
-                var taskCompletedMatcher = TaskCompleted.matcher(logs);
-                if (taskCompletedMatcher.find()) {
-                    try {
-                        completedTasks = Integer.parseInt(taskCompletedMatcher.group(1));
-                        totalTasks = Integer.parseInt(taskCompletedMatcher.group(2));
-                    } catch (Exception ignored) {
-                    }
+            resultBuiilder = resultBuiilder.exception(e);
+        } finally {
+            assert workflowArchitecture != null;
+            for (var entry : workflowArchitecture.keySet()) {
+                try {
+                    entry.close();
+                } catch (Exception ex) {
+                    log.warn(ex.getMessage(), ex);
                 }
             }
 
-            if (totalTasks > completedTasks) {
-                resultBuiilder = resultBuiilder.exception(new Exception("Not all tasks were completed"));
+            Timed.resetTimed();
+
+            WorkflowExecutor.vmTaskLogger.clear();
+            WorkflowExecutor.actuatorReassigns.clear();
+            WorkflowExecutor.jobReassigns.clear();
+
+            WorkflowJob.workflowJobs.clear();
+            WorkflowJob.numberOfStartedWorkflowJobs = 0;
+
+            ComputingAppliance.allComputingAppliances.clear();
+
+            if (WorkflowScheduler.actuatorArchitecture != null) {
+                WorkflowScheduler.actuatorArchitecture.clear();
             }
+            WorkflowScheduler.workflowArchitecture.clear();
 
-            var finishedResult = resultBuiilder
-                    .resultDirectory(ScenarioBase.resultDirectory)
-                    .logs(logs.toString())
-                    .totalCost(totalCost)
-                    .totalEnergyConsumption(totalEnergyConsumption)
-                    .totalTasks(totalTasks)
-                    .completedTasks(completedTasks)
-                    .executionTime(executionTime)
-                    .build();
+            ResourceAgent.resourceAgents.clear();
 
-            model.setResult(finishedResult);
-            model.setStatus(SimulationStatus.Finished);
+            Application.allApplications.clear();
+            Application.totalTimeOnNetwork = 0;
+            Application.totalBytesOnNetwork = 0;
+            Application.lastAction = 0;
+            Application.totalProcessedSize = 0;
 
-            return finishedResult;
+            Device.allDevices.clear();
+            Device.lastAction = 0;
+            Device.totalGeneratedSize = 0;
+
+            Sensor.sensorEventList.clear();
+
+            SmartDevice.stuckData = 0;
+
+            MobilityEvent.changeNodeEventCounter = 0;
+            MobilityEvent.connectToNodeEventCounter = 0;
+            MobilityEvent.disconnectFromNodeEventCounter = 0;
+            MobilityEvent.changePositionEventCounter = 0;
+
+            Instance.allInstances.clear();
+
+            Provider.allProviders.clear();
+
+            SimLogger.simLogger.removeHandler(logHandler);
         }
+
+        var totalCost = -1.0;
+        var totalEnergyConsumption = -1.0;
+        var executionTime = -1L;
+        var totalTasks = -1;
+        var completedTasks = -1;
+
+        if (!logs.isEmpty()) {
+            var totalCostMatcher = TotalCostPattern.matcher(logs);
+            if (totalCostMatcher.find()) {
+                try {
+                    totalCost = Double.parseDouble(totalCostMatcher.group(1));
+                } catch (Exception ignored) {
+                }
+            }
+
+            var totalEnergyConsumptionMatcher = TotalEnergyConsumptionPattern.matcher(logs);
+            if (totalEnergyConsumptionMatcher.find()) {
+                try {
+                    totalEnergyConsumption = Double.parseDouble(totalEnergyConsumptionMatcher.group(1));
+                } catch (Exception ignored) {
+                }
+            }
+
+            var executionTimeMatcher = ExecutionTime.matcher(logs);
+            if (executionTimeMatcher.find()) {
+                try {
+                    executionTime = Long.parseLong(executionTimeMatcher.group(1));
+                } catch (Exception ignored) {
+                }
+            }
+
+            var taskCompletedMatcher = TaskCompleted.matcher(logs);
+            if (taskCompletedMatcher.find()) {
+                try {
+                    completedTasks = Integer.parseInt(taskCompletedMatcher.group(1));
+                    totalTasks = Integer.parseInt(taskCompletedMatcher.group(2));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        if (totalTasks > completedTasks) {
+            resultBuiilder = resultBuiilder.exception(new Exception("Not all tasks were completed"));
+        }
+
+        var finishedResult = resultBuiilder
+                .resultDirectory(ScenarioBase.resultDirectory)
+                .logs(logs.toString())
+                .totalCost(totalCost)
+                .totalEnergyConsumption(totalEnergyConsumption)
+                .totalTasks(totalTasks)
+                .completedTasks(completedTasks)
+                .executionTime(executionTime)
+                .build();
+
+        model.setResult(finishedResult);
+        model.setStatus(SimulationStatus.Finished);
+
+        lock.unlock();
+
+        return finishedResult;
     }
 
 
     private HashMap<WorkflowComputingAppliance, Instance> getWorkflowArchitecture(SimulationModel model) throws Exception {
 
+        int cloudIndex = 1;
         HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture = new HashMap<>();
 
         String cloudfile = ScenarioBase.resourcePath + "LPDS_original.xml";
 
-        VirtualAppliance va = new VirtualAppliance("va", 100, 0, false, 1073741824L);
+        for (var i = 0; i < model.getCloudCount(); i++) {
+            var id = ++cloudIndex;
 
-        AlterableResourceConstraints arc1 = new AlterableResourceConstraints(2, 0.001, 4294967296L);
-        AlterableResourceConstraints arc2 = new AlterableResourceConstraints(4, 0.001, 4294967296L);
+            VirtualAppliance va = new VirtualAppliance("va" + id, 100, 0, false, 1073741824L);
+            AlterableResourceConstraints arc = new AlterableResourceConstraints(2, 0.001, 4294967296L);
 
-        WorkflowComputingAppliance cloud1 = new WorkflowComputingAppliance(cloudfile, "cloud1", new GeoLocation(0, 0), 1000);
+            WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(cloudfile, "cloud" + id, new GeoLocation(0, 0), 1000);
 
-        Instance instance1 = new Instance("instance1", va, arc1, 0.051 / 60 / 60 / 1000, 1);
-        //Instance instance2 = new Instance("instance2", va, arc2, 0.102 / 60 / 60 / 1000, 1);
+            Instance instance = new Instance("instance" + id, va, arc, 0.051 / 60 / 60 / 1000, 1);
 
-        workflowArchitecture.put(cloud1, instance1);
+            workflowArchitecture.put(cloud, instance);
 
-        if (model.getCloudCount() > 1) {
-            WorkflowComputingAppliance cloud2 = new WorkflowComputingAppliance(cloudfile, "cloud2", new GeoLocation(0, 0), 1000);
-
-            Instance instance2 = new Instance("instance2", va, arc2, 0.102 / 60 / 60 / 1000, 1);
-
-            workflowArchitecture.put(cloud2, instance2);
-
-            cloud2.addNeighbor(cloud1, 100);
+            // add all previous as neighbor
+            for (var entry : workflowArchitecture.entrySet()) {
+                cloud.addNeighbor(entry.getKey(), 100);
+            }
         }
-
-//        WorkflowComputingAppliance fog1 = new WorkflowComputingAppliance(cloudfile, "fog1", new GeoLocation(0, 10), 1000);
-//        WorkflowComputingAppliance fog2 = new WorkflowComputingAppliance(cloudfile, "fog2", new GeoLocation(10, 10), 1000);
-//        WorkflowComputingAppliance fog3 = new WorkflowComputingAppliance(cloudfile, "fog3", new GeoLocation(20, 0), 1000);
-//        WorkflowComputingAppliance fog4 = new WorkflowComputingAppliance(cloudfile, "fog4", new GeoLocation(10, -10), 1000);
-
-//        fog1.addNeighbor(fog2, 100);
-//        fog1.addNeighbor(fog3, 110);
-//        fog1.addNeighbor(fog4, 120);
-//        fog2.addNeighbor(fog3, 130);
-//        fog2.addNeighbor(fog4, 140);
-//        fog3.addNeighbor(fog4, 150);
-
-//        fog1.setParent(cloud1, 60);
-//        fog2.setParent(cloud1, 70);
-//        fog3.setParent(cloud1, 80);
-//        fog4.setParent(cloud1, 90);
-
-//        workflowArchitecture.put(fog1, instance1);
-//        workflowArchitecture.put(fog2, instance1);
-//        workflowArchitecture.put(fog3, instance1);
-//        workflowArchitecture.put(fog4, instance1);
 
         return workflowArchitecture;
     }

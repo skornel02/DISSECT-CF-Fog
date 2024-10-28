@@ -24,7 +24,7 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
 
         worker = new Thread(() -> {
             for (var simulation : simulations) {
-                service.RunSimulation(simulation);
+                service.runSimulation(simulation);
             }
         });
     }
