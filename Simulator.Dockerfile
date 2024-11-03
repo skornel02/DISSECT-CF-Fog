@@ -15,14 +15,10 @@ WORKDIR /app
 COPY . /app
 
 WORKDIR /app/simulator
-RUN mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip 
 
-WORKDIR /app/structure_optimizer
-RUN mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip
-
-WORKDIR /app/simulator
 RUN pip install --break-system-packages -r ./src/main/resources/script/requirement.txt
 
+RUN mvn clean package
+
 # Set the default command to run when starting the container
-WORKDIR /app/structure_optimizer
-CMD ["mvn", "spring-boot:run"]
+CMD ["java", "-cp", "target/dissect-cf-fog-1.0.0-SNAPSHOT-jar-with-dependencies.jar", "hu.u_szeged.inf.fog.simulator.demo.IoTSimulation"]

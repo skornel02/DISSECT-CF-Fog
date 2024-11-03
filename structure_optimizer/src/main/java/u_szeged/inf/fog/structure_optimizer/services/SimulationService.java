@@ -89,22 +89,11 @@ public class SimulationService {
 
             Timed.simulateUntilLastEvent();
             ScenarioBase.logStreamProcessing();
-            WorkflowGraphVisualiser.generateDag(ScenarioBase.scriptPath, ScenarioBase.resultDirectory, workflowFile);
-            TimelineVisualiser.generateTimeline(ScenarioBase.resultDirectory);
         } catch (Exception e) {
             SimLogger.simLogger.log(Level.SEVERE, e.getMessage(), e);
 
             resultBuiilder = resultBuiilder.exception(e);
         } finally {
-            assert workflowArchitecture != null;
-            for (var entry : workflowArchitecture.keySet()) {
-                try {
-                    entry.close();
-                } catch (Exception ex) {
-                    log.warn(ex.getMessage(), ex);
-                }
-            }
-
             Timed.resetTimed();
 
             WorkflowExecutor.vmTaskLogger.clear();
