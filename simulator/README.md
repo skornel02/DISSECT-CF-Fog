@@ -41,7 +41,7 @@ Run the following command in the root of this module to compile the source code,
 
 To execute a user-defined simulation, run the following command in the root directory (version and main class may vary):
 
-`java -cp target/dissect-cf-fog-1.0.0-SNAPSHOT-jar-with-dependencies.jar hu.u_szeged.inf.fog.simulator.demo.IoTSimulation`
+`java -cp target/dissect-cf-fog-1.0.0-SNAPSHOT-jar-with-dependencies.jar hu.u_szeged.inf.fog.simulator.demo.IoTWorkflowSimulation`
 
 ### Documentation
 
