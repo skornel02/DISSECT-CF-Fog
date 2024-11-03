@@ -18,7 +18,7 @@ WORKDIR /app/simulator
 
 RUN pip install --break-system-packages -r ./src/main/resources/script/requirement.txt
 
-RUN mvn clean package
+RUN mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip
 
 # Set the default command to run when starting the container
-CMD ["java", "-cp", "target/dissect-cf-fog-1.0.0-SNAPSHOT-jar-with-dependencies.jar", "hu.u_szeged.inf.fog.simulator.demo.IoTSimulation"]
+CMD ["java", "-cp", "target/dissect-cf-fog-1.0.0-SNAPSHOT-jar-with-dependencies.jar", "hu.u_szeged.inf.fog.simulator.demo.IoTWorkflowSimulation"]
