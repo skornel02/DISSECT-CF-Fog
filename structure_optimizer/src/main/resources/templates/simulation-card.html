@@ -1,94 +1,61 @@
 <th:block th:each="simulation : ${simulations}">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                Simulation <span th:text="${simulation.getId()}"></span> - <span
-                    th:text="${simulation.getStatus()}"></span>
-                <span th:if="${simulation.getResult().isPresent() && simulation.getResult().get().getErrorMessage() != null}" class="badge text-bg-danger">Failed</span>
+    <li th:id="${simulation.getId()}" class="list-group-item d-flex justify-content-between">
+        <div>
+            Simulation <span th:text="${simulation.getId()}" class="fw-bold"></span>
+        </div>
+        <div>
+            <div class="d-inline-flex gap-2 justify-content-center flex-wrap my-2"
+                 th:if="${simulation.getResult().isPresent()}"
+                 th:with="result=${simulation.getResult().get()}">
+                <span class="badge text-bg-primary"><span th:text="${result.getExecutionTime()}"></span> ms</span>
+                <span class="badge text-bg-success"><span th:text="${result.getTotalCost()}"></span> cost</span>
+                <span class="badge text-bg-info"><span
+                        th:text="${result.getTotalEnergyConsumption()}"></span> energy</span>
             </div>
-            <div class="card-body">
-                <p class="card-text" th:unless="${simulation.getResult().isPresent()}">
-                    No simulation details...
-                </p>
-                <div class="row" th:if="${simulation.getResult().isPresent()}"
-                     th:with="result=${simulation.getResult().get()}">
-                    <div class="col-12">
-                        <div class="alert alert-info" role="alert">
-                            <code th:text="${result.getResultDirectory()}"></code>
-                        </div>
-                    </div>
-
-                    <div class="col-4">
-                        <div class="card">
-                            <div class="card-header">
-                                Execution time (ms)
-                            </div>
-                            <div class="card-body">
-                                <p class="card-body" th:text="${result.getExecutionTime()}"></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="card">
-                            <div class="card-header">
-                                Total cost
-                            </div>
-                            <div class="card-body">
-                                <p class="card-body" th:text="${result.getTotalCost()}"></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="card">
-                            <div class="card-header">
-                                Total energy consumption
-                            </div>
-                            <div class="card-body">
-                                <p class="card-body" th:text="${result.getTotalEnergyConsumption()}"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Log in accordion-->
-                    <div class="col-12 my-4">
-                        <div class="accordion">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                            th:data-bs-target="'#collapse-log-' + ${simulation.getId()}" aria-expanded="true"
-                                            th:aria-controls="'collapse-log-' + ${simulation.getId()}">
-                                        Logs
-                                    </button>
-                                </h2>
-                                <div th:id="'collapse-log-' + ${simulation.getId()}"
-                                     class="accordion-collapse collapse">
-                                    <div class="accordion-body">
-                                        <pre><code th:text="${result.getLogs()}"></code></pre>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Errors if exists -->
-                            <div class="accordion-item" th:if="${result.getErrorMessage()}">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                            th:data-bs-target="'#collapse-error-' + ${simulation.getId()}" aria-expanded="true"
-                                            th:aria-controls="'collapse-error-' + ${simulation.getId()}">
-                                        Error - <span th:text="${result.getErrorMessage()}"></span>
-                                    </button>
-                                </h2>
-                                <div th:id="'collapse-error-' + ${simulation.getId()}"
-                                     class="accordion-collapse collapse show">
-                                    <div class="accordion-body">
-                                        <pre><code th:text="${result.getErrorStackTrace()}"></code></pre>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            <span th:if="${simulation.getResult().isPresent() && simulation.getResult().get().getErrorMessage() != null}"
+                  class="badge text-bg-danger">Failed</span>
+            <span th:text="${simulation.getStatus()}"></span>
+        </div>
+    </li>
+    <li class="list-group-item" th:if="${simulation.getResult().isPresent()}">
+        <div class="accordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                            th:data-bs-target="'#collapse-log-' + ${simulation.getId()}"
+                            aria-expanded="true"
+                            th:aria-controls="'collapse-log-' + ${simulation.getId()}">
+                        Logs
+                    </button>
+                </h2>
+                <div th:id="'collapse-log-' + ${simulation.getId()}"
+                     class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        <pre><code th:text="${simulation.getResult().get().getLogs()}"></code></pre>
                     </div>
                 </div>
-
             </div>
         </div>
-    </div>
-
+    </li>
+    <li class="list-group-item"
+        th:if="${simulation.getResult().isPresent() && simulation.getResult().get().getErrorMessage() != null}">
+        <div class="accordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                            th:data-bs-target="'#collapse-error-' + ${simulation.getId()}"
+                            aria-expanded="true"
+                            th:aria-controls="'collapse-error-' + ${simulation.getId()}">
+                        Error - <span th:text="${result.getErrorMessage()}"></span>
+                    </button>
+                </h2>
+                <div th:id="'collapse-error-' + ${simulation.getId()}"
+                     class="accordion-collapse collapse show">
+                    <div class="accordion-body">
+                        <pre><code th:text="${result.getErrorStackTrace()}"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </li>
 </th:block>

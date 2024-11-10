@@ -35,13 +35,13 @@ public class MaxMinScheduler extends WorkflowScheduler {
             workflowJob.ca.workflowQueue.add(workflowJob);
         }
 
-        if (Timed.getFireCount() > 0) {
-            this.jobReAssign(workflowJob, ComputingAppliance.getAllComputingAppliances().get(0));
-
-            if (workflowJob.ca.workflowVms.size() < 2) {
-                addVm(workflowJob.ca);
-            }
-        }
+//        if (Timed.getFireCount() > 0) {
+//            this.jobReAssign(workflowJob, ComputingAppliance.getAllComputingAppliances().get(0));
+//
+//            if (workflowJob.ca.workflowVms.size() < 2) {
+//                addVm(workflowJob.ca);
+//            }
+//        }
     }
 
     @Override

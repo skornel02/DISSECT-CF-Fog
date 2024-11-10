@@ -1,8 +1,8 @@
-<div class="d-flex flex-column my-4">
+<div class="col-3 d-flex flex-column my-4">
     <div class="alert alert-warning" th:if="${!optimization.isDone()}">
         The optimization is still running!
     </div>
-    <div class="alert alert-success" th:if="${optimization.isDone()}">
+    <div class="alert alert-light" th:if="${optimization.isDone()}">
         <h5 class="alert-heading">
             The optimization has finished running.
         </h5>
@@ -14,62 +14,63 @@
         </p>
     </div>
 </div>
-<div class="card my-4"
-     th:if="${optimization.getBestExecutionTimeSimulation().isPresent()}"
-     th:with="simulation=${optimization.getBestExecutionTimeSimulation().get()},result=${simulation.getResult().get()}">
-    <h5 class="card-header">Best execution time</h5>
-    <div class="card-body">
-        <p>
-            <span th:text="${simulation.getId()}"></span>
-        </p>
-        <p>
-            Execution time: <span th:text="${result.getExecutionTime()}"></span> ms
-        </p>
-        <p>
-            Total cost: <span th:text="${result.getTotalCost()}"></span>
-        </p>
-        <p>
-            Total energy consumption: <span th:text="${result.getTotalEnergyConsumption()}"></span>
-        </p>
+
+<div class="col-3">
+    <div class="card my-4"
+         th:if="${optimization.getBestExecutionTimeSimulation().isPresent()}"
+         th:with="simulation=${optimization.getBestExecutionTimeSimulation().get()},result=${simulation.getResult().get()}">
+        <h5 class="card-header">Best execution time</h5>
+        <div class="card-body">
+            <p>
+                <span th:text="${simulation.getId()}"></span>
+            </p>
+            <div class="d-flex flex-column gap-2 justify-content-center flex-wrap my-2">
+                <span class="badge text-bg-primary"><span th:text="${result.getExecutionTime()}"></span> ms</span>
+                <span class="badge text-bg-success"><span th:text="${result.getTotalCost()}"></span> cost</span>
+                <span class="badge text-bg-info"><span
+                        th:text="${result.getTotalEnergyConsumption()}"></span> energy</span>
+            </div>
+            <a th:href="'#' + ${simulation.getId()}" class="stretched-link"></a>
+        </div>
     </div>
 </div>
 
-<div class="card my-4"
-     th:if="${optimization.getBestCostSimulation().isPresent()}"
-     th:with="simulation=${optimization.getBestCostSimulation().get()},result=${simulation.getResult().get()}">
-    <h5 class="card-header">Best cost</h5>
-    <div class="card-body">
-        <p>
-            <span th:text="${simulation.getId()}"></span>
-        </p>
-        <p>
-            Execution time: <span th:text="${result.getExecutionTime()}"></span> ms
-        </p>
-        <p>
-            Total cost: <span th:text="${result.getTotalCost()}"></span>
-        </p>
-        <p>
-            Total energy consumption: <span th:text="${result.getTotalEnergyConsumption()}"></span>
-        </p>
+<div class="col-3">
+    <div class="card my-4"
+         th:if="${optimization.getBestCostSimulation().isPresent()}"
+         th:with="simulation=${optimization.getBestCostSimulation().get()},result=${simulation.getResult().get()}">
+        <h5 class="card-header">Best cost</h5>
+        <div class="card-body">
+            <p>
+                <span th:text="${simulation.getId()}"></span>
+            </p>
+            <div class="d-flex flex-column gap-2 justify-content-center flex-wrap my-2">
+                <span class="badge text-bg-primary"><span th:text="${result.getExecutionTime()}"></span> ms</span>
+                <span class="badge text-bg-success"><span th:text="${result.getTotalCost()}"></span> cost</span>
+                <span class="badge text-bg-info"><span
+                        th:text="${result.getTotalEnergyConsumption()}"></span> energy</span>
+            </div>
+            <a th:href="'#' + ${simulation.getId()}" class="stretched-link"></a>
+        </div>
     </div>
 </div>
 
-<div class="card my-4"
-     th:if="${optimization.getBestEnergySimulation().isPresent()}"
-     th:with="simulation=${optimization.getBestEnergySimulation().get()},result=${simulation.getResult().get()}">
-    <h5 class="card-header">Best energy consumption</h5>
-    <div class="card-body">
-        <p>
-            <span th:text="${simulation.getId()}"></span>
-        </p>
-        <p>
-            Execution time: <span th:text="${result.getExecutionTime()}"></span> ms
-        </p>
-        <p>
-            Total cost: <span th:text="${result.getTotalCost()}"></span>
-        </p>
-        <p>
-            Total energy consumption: <span th:text="${result.getTotalEnergyConsumption()}"></span>
-        </p>
+<div class="col-3">
+    <div class="card my-4"
+         th:if="${optimization.getBestEnergySimulation().isPresent()}"
+         th:with="simulation=${optimization.getBestEnergySimulation().get()},result=${simulation.getResult().get()}">
+        <h5 class="card-header">Best energy consumption</h5>
+        <div class="card-body">
+            <p>
+                <span th:text="${simulation.getId()}"></span>
+            </p>
+            <div class="d-flex flex-column gap-2 justify-content-center flex-wrap my-2">
+                <span class="badge text-bg-primary"><span th:text="${result.getExecutionTime()}"></span> ms</span>
+                <span class="badge text-bg-success"><span th:text="${result.getTotalCost()}"></span> cost</span>
+                <span class="badge text-bg-info"><span
+                        th:text="${result.getTotalEnergyConsumption()}"></span> energy</span>
+            </div>
+            <a th:href="'#' + ${simulation.getId()}" class="stretched-link"></a>
+        </div>
     </div>
 </div>

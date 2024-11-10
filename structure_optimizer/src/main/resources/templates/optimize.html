@@ -16,26 +16,22 @@
 
     <h2>Results</h2>
 
-    <div class="row">
-        <div class="col-md-4"
-             hx-ext="sse"
-             data-th-sse-connect="'/optimize/' + ${uuid} + '/status'"
-             sse-swap="message"
-             sse-close="finished">
-
-        </div>
-        <div class="col-md-8">
-            <div class="row"
-                 hx-ext="sse"
-                 data-th-sse-connect="'/optimize/' + ${uuid} + '/simulations'"
-                 sse-swap="message"
-                 sse-close="finished">
-                <div class="col-12">
-                    Loading...
-                </div>
-            </div>
-        </div>
+    <div class="row"
+         hx-ext="sse"
+         data-th-sse-connect="'/optimize/' + ${uuid} + '/status'"
+         sse-swap="message"
+         sse-close="finished">
     </div>
+
+    <ul class="list-group"
+         hx-ext="sse"
+         data-th-sse-connect="'/optimize/' + ${uuid} + '/simulations'"
+         sse-swap="message"
+         sse-close="finished">
+        <li class="list-group-item">
+            Loading...
+        </li>
+    </ul>
 
 </div>
 

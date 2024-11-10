@@ -28,15 +28,22 @@ import java.util.concurrent.Executors;
 
 @Controller
 public class OptimizationController {
-    private static final Set<ResponseBodyEmitter.DataWithMediaType> FINISH_EVENT = SseEmitter.event()
-            .id("-1")
-            .name("finished")
-            .build();
-    private static final Set<ResponseBodyEmitter.DataWithMediaType> INVALID_UUID_EVENT = SseEmitter.event()
-            .data("Invalid UUID")
-            .id("-2")
-            .name("message")
-            .build();
+
+    private static Set<ResponseBodyEmitter.DataWithMediaType> createFinishEvent(int id) {
+        return SseEmitter.event()
+                .id(String.valueOf(id))
+                .name("finished")
+                .data("finished")
+                .build();
+    }
+
+    private static Set<ResponseBodyEmitter.DataWithMediaType> createInvalidUUIDEvent(int id) {
+        return SseEmitter.event()
+                .id(String.valueOf(id))
+                .name("message")
+                .data("Invalid UUID")
+                .build();
+    }
 
     private final SimulationService simulationService;
     private final SpringTemplateEngine templateEngine;
@@ -58,12 +65,16 @@ public class OptimizationController {
     }
 
     @PostMapping("/optimize")
-    public String optimize(Model model, @RequestParam String uuid) {
+    public String optimize(Model model, @RequestParam String strategy, @RequestParam String uuid) {
         model.addAttribute("uuid", uuid);
 
         if (!simulations.containsKey(uuid)) {
             try {
-                var simulation = new RandomSimulationOptimization(simulationService, uuid, 10);
+                BaseSimulationOptimization simulation = switch (strategy) {
+                    case "random" -> new RandomSimulationOptimization(simulationService, uuid, 10);
+                    case "genetics" -> throw new IllegalArgumentException("Genetic optimization is not implemented yet");
+                    default -> throw new IllegalArgumentException("Invalid strategy: " + strategy);
+                };
 
                 simulations.put(uuid, simulation);
                 simulation.start();
@@ -83,8 +94,8 @@ public class OptimizationController {
         sseMvcExecutor.execute(() -> {
             try {
                 if (!simulations.containsKey(uuid)) {
-                    emitter.send(INVALID_UUID_EVENT);
-                    emitter.send(FINISH_EVENT);
+                    emitter.send(createInvalidUUIDEvent(1));
+                    emitter.send(createFinishEvent(2));
                     emitter.complete();
                     return;
                 }
@@ -92,7 +103,18 @@ public class OptimizationController {
                 var optimization = simulations.get(uuid);
 
                 if (optimization.isDone()) {
-                    emitter.send(FINISH_EVENT);
+                    var context = new Context();
+                    context.setVariable("simulations", optimization.getSimulations());
+
+                    var rendered = templateEngine.process("simulation-card", context);
+
+                    SseEmitter.SseEventBuilder event = SseEmitter.event()
+                            .data(rendered)
+                            .id(String.valueOf(1))
+                            .name("message");
+                    emitter.send(event);
+
+                    emitter.send(createFinishEvent(2));
                     emitter.complete();
                     return;
                 }
@@ -110,7 +132,7 @@ public class OptimizationController {
                     emitter.send(event);
 
                     if (optimization.isDone()) {
-                        emitter.send(FINISH_EVENT);
+                        emitter.send(createFinishEvent(i + 1));
                         emitter.complete();
                         break;
                     }
@@ -132,8 +154,8 @@ public class OptimizationController {
         sseMvcExecutor.execute(() -> {
             try {
                 if (!simulations.containsKey(uuid)) {
-                    emitter.send(INVALID_UUID_EVENT);
-                    emitter.send(FINISH_EVENT);
+                    emitter.send(createInvalidUUIDEvent(1));
+                    emitter.send(createFinishEvent(2));
                     emitter.complete();
                     return;
                 }
@@ -141,7 +163,18 @@ public class OptimizationController {
                 var optimization = simulations.get(uuid);
 
                 if (optimization.isDone()) {
-                    emitter.send(FINISH_EVENT);
+                    var context = new Context();
+                    context.setVariable("optimization", optimization);
+
+                    var rendered = templateEngine.process("optimize-status", context);
+
+                    SseEmitter.SseEventBuilder event = SseEmitter.event()
+                            .data(rendered)
+                            .id(String.valueOf(1))
+                            .name("message");
+                    emitter.send(event);
+
+                    emitter.send(createFinishEvent(2));
                     emitter.complete();
                     return;
                 }
@@ -159,7 +192,7 @@ public class OptimizationController {
                     emitter.send(event);
 
                     if (optimization.isDone()) {
-                        emitter.send(FINISH_EVENT);
+                        emitter.send(createFinishEvent(i + 1));
                         emitter.complete();
                         break;
                     }
