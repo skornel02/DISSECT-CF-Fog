@@ -56,7 +56,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && \
-    apt-get wget curl && \
+    apt-get install -y wget curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
