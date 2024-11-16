@@ -60,6 +60,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+COPY ./simulator/src/main/resources/demo /src/main/resources/demo
 COPY --from=build /app/structure_optimizer/target/structure_optimizer-0.0.1-SNAPSHOT.jar /app/structure_optimizer.jar
 
 EXPOSE 8080
