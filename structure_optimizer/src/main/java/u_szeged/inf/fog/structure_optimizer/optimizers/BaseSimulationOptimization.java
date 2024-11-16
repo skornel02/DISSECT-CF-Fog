@@ -15,6 +15,7 @@ import java.util.Optional;
 public abstract class BaseSimulationOptimization {
 
     private final SimulationService service;
+
     private final String id;
 
     protected boolean isRunning = false;
@@ -24,6 +25,13 @@ public abstract class BaseSimulationOptimization {
     public BaseSimulationOptimization(SimulationService service, String id) {
         this.service = service;
         this.id = id;
+    }
+
+    public String getSimulationType() {
+        return switch (this) {
+            case RandomSimulationOptimization randomSimulationOptimization -> "Random";
+            default -> "Unknown";
+        };
     }
 
     public abstract void start();

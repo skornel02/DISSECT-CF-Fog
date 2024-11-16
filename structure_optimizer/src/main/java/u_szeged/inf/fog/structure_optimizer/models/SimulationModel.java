@@ -1,5 +1,7 @@
 package u_szeged.inf.fog.structure_optimizer.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
 
