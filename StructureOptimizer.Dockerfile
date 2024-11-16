@@ -30,7 +30,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && \
-    apt-get install -y python3 python3-pip maven graphviz wget curl && \
+    apt-get install -y python3 python3-pip maven graphviz && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -51,6 +51,15 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 # Create minimal final image
 FROM java as prod
+
+RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+    --mount=target=/var/cache/apt,type=cache,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    apt-get update && \
+    apt-get wget curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/structure_optimizer/target/structure_optimizer-0.0.1-SNAPSHOT.jar /app/structure_optimizer.jar
 
 EXPOSE 8080
