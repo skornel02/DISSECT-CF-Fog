@@ -1,7 +1,8 @@
-LABEL maintainer="stefan.kornel@stud.u-szeged.hu"
-
 # Build frontend client
 FROM node:20-slim AS node
+
+LABEL maintainer="stefan.kornel@stud.u-szeged.hu"
+
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -21,6 +22,8 @@ FROM openjdk:21-jdk-slim as java
 
 # Build backend (and java dependencies)
 FROM java as build
+
+LABEL maintainer="stefan.kornel@stud.u-szeged.hu"
 
 # INstall maven, python dependencies and graphviz
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
