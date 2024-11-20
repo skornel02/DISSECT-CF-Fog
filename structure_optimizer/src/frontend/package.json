@@ -8,13 +8,16 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "codegen": "openapi-typescript http://localhost:8080/v3/api-docs -o src/lib/backend.d.ts --root-types"
+    "codegen": "openapi-typescript http://localhost:8080/v3/api-docs -o src/lib/backend.d.ts --root-types",
+    "format": "prettier --write ./src"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.2",
     "@radix-ui/react-tooltip": "^1.1.4",
     "@tanstack/react-table": "^8.20.5",
@@ -22,6 +25,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.460.0",
     "openapi-fetch": "^0.13.0",
+    "prettier": "^3.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
