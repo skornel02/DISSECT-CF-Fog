@@ -17,7 +17,6 @@ public class WebApplicationConfig implements WebMvcConfigurer {
                     .setViewName("forward:/index.html");
     }
 
-
     @Bean
     public WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> containerCustomizer() {
         return container -> {

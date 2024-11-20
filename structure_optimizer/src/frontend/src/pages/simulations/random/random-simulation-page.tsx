@@ -1,48 +1,49 @@
-import {Button} from "@/components/ui/button.tsx";
-import {useCallback} from "react";
-import {client} from "@/lib/backend-client.ts";
-import {useToast} from "@/hooks/use-toast.ts";
-import {useNavigate} from "react-router-dom";
-import {SchemaSimulationStructure} from "@/lib/backend";
+import { Button } from '@/components/ui/button.tsx';
+import { useCallback, useState } from 'react';
+import { client } from '@/lib/backend-client.ts';
+import { useToast } from '@/hooks/use-toast.ts';
+import { useNavigate } from 'react-router-dom';
+import { SchemaSimulationStructure } from '@/lib/backend';
+import StructureEditor from '@/components/structure/StructureEditor';
 
 export default function RandomSimulationPage() {
-    const {toast} = useToast();
-    // navigate with router
-    const navigate = useNavigate();
+  const { toast } = useToast();
+  // navigate with router
+  const navigate = useNavigate();
 
-    const startSimulation = useCallback(async () => {
-        const {data, response} = await client.POST('/api/simulations/random', {
-            body: {
-                computerTypes: [],
-                regions: [],
-                regionConnections: [],
-                instances: [],
-                defaultLatency: 10,
-            } satisfies SchemaSimulationStructure
-        })
+  const [structure, setStructure] = useState<SchemaSimulationStructure>({});
 
-        if (!response.ok || !data) {
-            toast({
-                title: "Failed to start simulation",
-                variant: 'destructive'
-            })
+  const startSimulation = useCallback(
+    async (structure: SchemaSimulationStructure) => {
+      const { data, response } = await client.POST('/api/simulations/random', {
+        body: structure,
+      });
 
-            return;
-        }
-
+      if (!response.ok || !data) {
         toast({
-            title: "Simulation started",
-        })
+          title: 'Failed to start simulation',
+          variant: 'destructive',
+        });
 
-        navigate(`/simulations/${data.guid}`);
-    }, [])
+        return;
+      }
 
-    return (
-        <div className="p-4">
-            <h1 className="mb-2 text-xl">Random Simulation</h1>
-            <Button onClick={startSimulation}>
-                Start simulation
-            </Button>
-        </div>
-    )
+      toast({
+        title: 'Simulation started',
+      });
+
+      navigate(`/simulations/${data.guid}`);
+    },
+    [],
+  );
+
+  return (
+    <div className="p-4">
+      <h1 className="mb-2 text-xl">Random Simulation</h1>
+      <StructureEditor handleChange={setStructure} />
+      <Button onClick={() => startSimulation(structure)}>
+        Start simulation
+      </Button>
+    </div>
+  );
 }
