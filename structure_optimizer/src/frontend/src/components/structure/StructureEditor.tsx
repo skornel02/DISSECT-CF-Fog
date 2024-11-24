@@ -4,22 +4,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StructureLatencyEditor from './editors/StructureLatencyEditor';
 import StructureRegionEditor from './editors/StructureRegionEditor';
 import StructureSaveLoad from './editors/StructureSaveLoad';
+import StructureComputerTypeEditor from './editors/StructureComputerTypeEditor';
+import StructureInstanceEditor from './editors/StructureInstanceEditor';
+import Cookies from 'js-cookie';
 
 export default function StructureEditor({
   handleChange,
 }: {
   handleChange: (structure: SchemaSimulationStructure) => void;
 }) {
-  const [structure, setStructure] = useState<SchemaSimulationStructure>({
-    regions: [],
-    computerTypes: [],
-    instances: [],
-    regionConnections: [],
-    defaultLatency: 100,
+  const [structure, setStructure] = useState<SchemaSimulationStructure>(() => {
+    const stored = Cookies.get('structure');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    return {
+      regions: [],
+      computerTypes: [],
+      instances: [],
+      regionConnections: [],
+      defaultLatency: 100,
+    };
   });
 
   useEffect(() => {
     handleChange(structure);
+
+    Cookies.set('structure', JSON.stringify(structure));
   }, [structure]);
 
   return (
@@ -36,8 +47,12 @@ export default function StructureEditor({
         <TabsContent value="regions">
           <StructureRegionEditor {...{ structure, setStructure }} />
         </TabsContent>
-        <TabsContent value="computerTypes"></TabsContent>
-        <TabsContent value="instance"></TabsContent>
+        <TabsContent value="computerTypes">
+          <StructureComputerTypeEditor {...{ structure, setStructure }} />
+        </TabsContent>
+        <TabsContent value="instance">
+          <StructureInstanceEditor {...{ structure, setStructure }} />
+        </TabsContent>
         <TabsContent value="latency">
           <StructureLatencyEditor {...{ structure, setStructure }} />
         </TabsContent>

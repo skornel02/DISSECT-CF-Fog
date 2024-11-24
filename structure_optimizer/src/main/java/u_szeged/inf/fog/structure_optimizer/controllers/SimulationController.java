@@ -1,17 +1,12 @@
 package u_szeged.inf.fog.structure_optimizer.controllers;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.websocket.server.PathParam;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import u_szeged.inf.fog.structure_optimizer.dtos.SimulationStartedDto;
 import u_szeged.inf.fog.structure_optimizer.dtos.SimulationStatusDto;
-import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
-import u_szeged.inf.fog.structure_optimizer.models.SimulationResult;
-import u_szeged.inf.fog.structure_optimizer.optimizers.BaseSimulationOptimization;
 import u_szeged.inf.fog.structure_optimizer.services.OptimizationService;
-import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
 import u_szeged.inf.fog.structure_optimizer.structures.SimulationStructure;
 
 import java.util.UUID;
@@ -47,10 +42,6 @@ public class SimulationController {
 
     @PostMapping("/api/simulations/random")
     public ResponseEntity<SimulationStartedDto> runSimulation(@RequestBody SimulationStructure structure) {
-        var model = new SimulationModel();
-        model.setId(UUID.randomUUID().toString());
-        model.setCloudCount(15);
-
         var started = optimizationService.startRandomOptimization(structure);
 
         return ResponseEntity.ok(started);

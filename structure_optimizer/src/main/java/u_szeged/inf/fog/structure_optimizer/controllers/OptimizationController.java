@@ -20,6 +20,7 @@ import u_szeged.inf.fog.structure_optimizer.utils.SimpleLogHandler;
 import java.io.File;
 import java.nio.file.Files;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
@@ -71,7 +72,7 @@ public class OptimizationController {
         if (!simulations.containsKey(uuid)) {
             try {
                 BaseSimulationOptimization simulation = switch (strategy) {
-                    case "random" -> new RandomSimulationOptimization(simulationService, uuid, 10);
+                    case "random" -> new RandomSimulationOptimization(simulationService, uuid, new ArrayList<>(), 10);
                     case "genetics" -> throw new IllegalArgumentException("Genetic optimization is not implemented yet");
                     default -> throw new IllegalArgumentException("Invalid strategy: " + strategy);
                 };

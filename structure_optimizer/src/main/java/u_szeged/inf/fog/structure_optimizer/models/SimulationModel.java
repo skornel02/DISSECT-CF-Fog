@@ -1,10 +1,10 @@
 package u_szeged.inf.fog.structure_optimizer.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
+import u_szeged.inf.fog.structure_optimizer.structures.SimulationStructure;
 
+import java.util.List;
 import java.util.Optional;
 
 @Data
@@ -13,7 +13,7 @@ public class SimulationModel {
 
     private SimulationStatus status = SimulationStatus.Waiting;
 
-    private int cloudCount;
+    private List<SimulationComputerInstance> instances;
 
     private SimulationResult result;
 
