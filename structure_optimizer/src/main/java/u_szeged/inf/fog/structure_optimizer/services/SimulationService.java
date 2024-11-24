@@ -16,8 +16,6 @@ import hu.u_szeged.inf.fog.simulator.node.WorkflowComputingAppliance;
 import hu.u_szeged.inf.fog.simulator.provider.Instance;
 import hu.u_szeged.inf.fog.simulator.provider.Provider;
 import hu.u_szeged.inf.fog.simulator.util.SimLogger;
-import hu.u_szeged.inf.fog.simulator.util.TimelineVisualiser;
-import hu.u_szeged.inf.fog.simulator.util.WorkflowGraphVisualiser;
 import hu.u_szeged.inf.fog.simulator.util.xml.ScientificWorkflowParser;
 import hu.u_szeged.inf.fog.simulator.util.xml.WorkflowJobModel;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowExecutor;
@@ -27,16 +25,21 @@ import hu.u_szeged.inf.fog.simulator.workflow.scheduler.WorkflowScheduler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
+import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationResult;
 import u_szeged.inf.fog.structure_optimizer.utils.SimpleLogHandler;
 
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -87,8 +90,17 @@ public class SimulationService {
 
             new WorkflowExecutor(new MaxMinScheduler(workflowArchitecture));
 
-            Timed.simulateUntilLastEvent();
+            CompletableFuture.supplyAsync(() -> {
+                        Timed.simulateUntilLastEvent();
+                        return true;
+                    })
+                    .get(15, TimeUnit.SECONDS);
+
             ScenarioBase.logStreamProcessing();
+        } catch (TimeoutException e) {
+            SimLogger.simLogger.log(Level.SEVERE, "Event simulation timed out!", e);
+
+            resultBuiilder = resultBuiilder.exception(new Exception("Event simulation timed out!"));
         } catch (Exception e) {
             SimLogger.simLogger.log(Level.SEVERE, e.getMessage(), e);
 
@@ -203,29 +215,65 @@ public class SimulationService {
 
 
     private HashMap<WorkflowComputingAppliance, Instance> getWorkflowArchitecture(SimulationModel model) throws Exception {
+        var simulationMapping = new HashMap<SimulationComputerInstance, List<WorkflowComputingAppliance>>();
 
-        int cloudIndex = 1;
-        HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture = new HashMap<>();
-
+        var workflowArchitecture = new HashMap<WorkflowComputingAppliance, Instance>();
         String cloudfile = ScenarioBase.resourcePath + "LPDS_original.xml";
 
-        for (var i = 0; i < model.getCloudCount(); i++) {
-            var id = ++cloudIndex;
+        for (var computerInstance : model.getInstances()) {
+            var counter = 0;
+            var appliances = new ArrayList<WorkflowComputingAppliance>();
 
-            VirtualAppliance va = new VirtualAppliance("va" + id, 100, 0, false, 1073741824L);
-            AlterableResourceConstraints arc = new AlterableResourceConstraints(2, 0.001, 4294967296L);
+            for (var i = 0; i < computerInstance.getCount(); i++) {
+                var id = computerInstance.getRegion() + "-" + computerInstance.getComputerType() + "-" + ++counter;
 
-            WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(cloudfile, "cloud" + id, new GeoLocation(0, 0), 1000);
+                VirtualAppliance va = new VirtualAppliance(id + "-va", 100, 0, false, 1073741824L);
+                AlterableResourceConstraints arc = new AlterableResourceConstraints(
+                        computerInstance.getCores(),
+                        computerInstance.getProcessingPerTick(),
+                        computerInstance.getMemory());
+//                AlterableResourceConstraints arc = new AlterableResourceConstraints(2, 0.001, 4294967296L);
 
-            Instance instance = new Instance("instance" + id, va, arc, 0.051 / 60 / 60 / 1000, 1);
+                WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(
+                        cloudfile,
+                        id + "-cloud",
+                        new GeoLocation(computerInstance.getLatitude(), computerInstance.getLongitude()),
+                        1000);
 
-            workflowArchitecture.put(cloud, instance);
+                Instance instance = new Instance(id + "-instance", va, arc, 0.051 / 60 / 60 / 1000, 1);
 
-            // add all previous as neighbor
-            for (var entry : workflowArchitecture.entrySet()) {
-                cloud.addNeighbor(entry.getKey(), 100);
+                appliances.add(cloud);
+                workflowArchitecture.put(cloud, instance);
+
+                // add all previous as neighbor
+            }
+
+            simulationMapping.put(computerInstance, appliances);
+        }
+
+        for (var computerInstance : model.getInstances()) {
+            for (var targetRegionEntry : computerInstance.getLatencyMap().entrySet()) {
+                var targetRegion = targetRegionEntry.getKey();
+                var latency = targetRegionEntry.getValue();
+
+                var targetRegionAppliances = simulationMapping.entrySet()
+                        .stream()
+                        .filter(entry -> entry.getKey().getRegion().equals(targetRegion))
+                        .flatMap(entry -> entry.getValue().stream())
+                        .toList();
+
+                for (var appliance : simulationMapping.get(computerInstance)) {
+                    for (var targetAppliance : targetRegionAppliances) {
+                        if (appliance == targetAppliance) {
+                            continue;
+                        }
+
+                        appliance.addNeighbor(targetAppliance, latency);
+                    }
+                }
             }
         }
+
 
         return workflowArchitecture;
     }

@@ -3,9 +3,11 @@ package u_szeged.inf.fog.structure_optimizer.optimizers;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
+import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
 
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
@@ -18,9 +20,13 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
 
     private final Thread worker;
 
-    public RandomSimulationOptimization(SimulationService service, String id, int iteraations) {
-        super(service, id);
-        this.iteraations = iteraations;
+    public RandomSimulationOptimization(
+            SimulationService service,
+            String id,
+            List<SimulationComputerInstance> computers,
+            int iterations) {
+        super(service, id, computers);
+        this.iteraations = iterations;
 
         worker = new Thread(() -> {
             for (var simulation : simulations) {
@@ -33,9 +39,16 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
     public void start() {
         for (int i = 0; i < iteraations; i++) {
             var simulation = new SimulationModel();
-            simulation.setId(UUID.randomUUID().toString());
 
-            simulation.setCloudCount(random.nextInt(10) + 1);
+            var computerInstances = this.computerInstances
+                    .stream()
+                    .map(computer -> computer.toBuilder()
+                            .count(random.nextInt(4) + 1)
+                            .build())
+                    .toList();
+
+            simulation.setId(UUID.randomUUID().toString());
+            simulation.setInstances(computerInstances);
 
             simulations.add(simulation);
         }

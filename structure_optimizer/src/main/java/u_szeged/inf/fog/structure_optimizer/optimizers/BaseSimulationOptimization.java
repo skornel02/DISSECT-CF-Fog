@@ -2,6 +2,7 @@ package u_szeged.inf.fog.structure_optimizer.optimizers;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
 
@@ -18,13 +19,19 @@ public abstract class BaseSimulationOptimization {
 
     private final String id;
 
+    protected final List<SimulationComputerInstance> computerInstances;
+
     protected boolean isRunning = false;
 
     protected List<SimulationModel> simulations = new ArrayList<>();
 
-    public BaseSimulationOptimization(SimulationService service, String id) {
+    public BaseSimulationOptimization(
+            SimulationService service,
+            String id,
+            List<SimulationComputerInstance> computerInstances) {
         this.service = service;
         this.id = id;
+        this.computerInstances = computerInstances;
     }
 
     public String getSimulationType() {

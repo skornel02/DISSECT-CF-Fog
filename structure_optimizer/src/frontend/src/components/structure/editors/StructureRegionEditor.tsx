@@ -84,7 +84,7 @@ export default function StructureRegionEditor({
                 if (r.name === row.original.name) {
                   return {
                     ...r,
-                    latitude: parseInt(value),
+                    latitude: parseFloat(value),
                   };
                 }
                 return r;
@@ -110,7 +110,7 @@ export default function StructureRegionEditor({
                 if (r.name === row.original.name) {
                   return {
                     ...r,
-                    longitude: parseInt(value),
+                    longitude: parseFloat(value),
                   };
                 }
                 return r;
@@ -177,12 +177,12 @@ export default function StructureRegionEditor({
 
   return (
     <>
-      <Card className='my-4'>
+      <Card className='my-4 max-w-md mx-auto'>
         <CardHeader>
           <CardTitle>Add region</CardTitle>
         </CardHeader>
         <CardContent className='flex flex-col gap-2'>
-          <div className="grid w-full max-w-sm items-center gap-1.5">
+          <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="name">Name</Label>
             <Input
               type="text"
@@ -194,7 +194,7 @@ export default function StructureRegionEditor({
               placeholder='Region name'
             />
           </div>
-          <div className="grid w-full max-w-sm items-center gap-1.5">
+          <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="latitude">Latitude</Label>
             <Input
               type="number"
@@ -203,11 +203,11 @@ export default function StructureRegionEditor({
               max={90}
               value={newRegion.latitude}
               onChange={(val) =>
-                setNewRegion((_) => ({ ..._, latitude: parseInt(val.target.value) }))
+                setNewRegion((_) => ({ ..._, latitude: parseFloat(val.target.value) }))
               }
             />
           </div>
-          <div className="grid w-full max-w-sm items-center gap-1.5">
+          <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="longitude">Longitude</Label>
             <Input
               type="number"
@@ -216,11 +216,11 @@ export default function StructureRegionEditor({
               max={180}
               value={newRegion.longitude}
               onChange={(val) =>
-                setNewRegion((_) => ({ ..._, longitude: parseInt(val.target.value) }))
+                setNewRegion((_) => ({ ..._, longitude: parseFloat(val.target.value) }))
               }
             />
           </div>
-          <div className="grid w-full max-w-sm items-center gap-1.5">
+          <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="interRegionLatency">Inter region latency</Label>
             <Input
               type="number"
@@ -239,6 +239,15 @@ export default function StructureRegionEditor({
                 toast({
                   title: 'Error',
                   description: 'Region name cannot be empty.',
+                  variant: 'destructive',
+                })
+                return;
+              }
+
+              if (regions.find((r) => r.name === newRegion.name)) {
+                toast({
+                  title: 'Error',
+                  description: 'Region with this name already exists.',
                   variant: 'destructive',
                 })
                 return;
@@ -301,7 +310,7 @@ export default function StructureRegionEditor({
                 <TableCell
                   colSpan={columns.length}
                   className="h-24 text-center">
-                  No results.
+                  No regions
                 </TableCell>
               </TableRow>
             )}
