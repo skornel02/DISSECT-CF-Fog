@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table.tsx';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button.tsx';
-import { ArrowUpDown, Hammer, Map, Scroll } from 'lucide-react';
+import { ArrowUpDown, Map, Scroll } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -36,12 +36,12 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
       return (<div key={'row-status-' + row.original.id} className='flex flex-col justify-center items-center'>
         <span className='text-center my-1'> {row.original.status} </span>
 
-        {row.original.result 
-          && row.original.result.completedTasks === row.original.result.totalTasks 
+        {row.original.result
+          && row.original.result.completedTasks === row.original.result.totalTasks
           && row.original.result.totalTasks !== -1
           && (
-          <Badge className='justify-center'>Success</Badge>
-        )}
+            <Badge className='justify-center'>Success</Badge>
+          )}
         {row.original.result && row.original.result.errorMessage !== null && (
           <Badge variant='destructive' className='justify-center'>Failed</Badge>
         )}
@@ -125,26 +125,26 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
     header: "Actions",
     cell: ({ row }) => (
       <>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            variant='ghost'
-            className="btn btn-primary">
-            <Map />
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Structure</DialogTitle>
-            <DialogDescription>
-              <Textarea value={JSON.stringify(row.original.instances, null, 2)}
-                readOnly
-                className='max-h-[80vh]'
-                rows={30} />
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant='ghost'
+              className="btn btn-primary">
+              <Map />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Structure</DialogTitle>
+              <DialogDescription>
+                <Textarea value={JSON.stringify(row.original.instances, null, 2)}
+                  readOnly
+                  className='max-h-[80vh]'
+                  rows={30} />
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
         {row.original.result && (
           <Dialog>
             <DialogTrigger asChild>
