@@ -128,7 +128,10 @@ public class SimulationService {
             if (WorkflowScheduler.actuatorArchitecture != null) {
                 WorkflowScheduler.actuatorArchitecture.clear();
             }
-            WorkflowScheduler.workflowArchitecture.clear();
+
+            if (WorkflowScheduler.workflowArchitecture != null) {
+                WorkflowScheduler.workflowArchitecture.clear();
+            }
 
             ResourceAgent.resourceAgents.clear();
 
