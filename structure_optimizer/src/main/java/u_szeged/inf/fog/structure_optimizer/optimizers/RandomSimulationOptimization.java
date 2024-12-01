@@ -28,7 +28,11 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
         super(service, id, computers);
         this.iteraations = iterations;
 
+        ClassLoader contextClassLoader = this.getClass().getClassLoader();
+
         worker = new Thread(() -> {
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
+
             for (var simulation : simulations) {
                 service.runSimulation(simulation);
             }
