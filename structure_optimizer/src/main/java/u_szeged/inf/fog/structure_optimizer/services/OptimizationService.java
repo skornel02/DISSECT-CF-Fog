@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import u_szeged.inf.fog.structure_optimizer.dtos.SimulationStartedDto;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.optimizers.BaseSimulationOptimization;
+import u_szeged.inf.fog.structure_optimizer.optimizers.GeneticOptimization;
 import u_szeged.inf.fog.structure_optimizer.optimizers.RandomSimulationOptimization;
 import u_szeged.inf.fog.structure_optimizer.structures.RegionConnection;
 import u_szeged.inf.fog.structure_optimizer.structures.SimulationStructure;
@@ -33,6 +34,20 @@ public class OptimizationService {
         var computerInstances = createComputerInstanceListFromStructure(structure);
 
         var randomOptimization = new RandomSimulationOptimization(simulationService, id, computerInstances, 100);
+
+        simulations.put(id, randomOptimization);
+
+        randomOptimization.start();
+
+        return new SimulationStartedDto(id);
+    }
+
+    public SimulationStartedDto startGeneticOptimization(SimulationStructure structure) {
+        var id = UUID.randomUUID().toString();
+
+        var computerInstances = createComputerInstanceListFromStructure(structure);
+
+        var randomOptimization = new GeneticOptimization(simulationService, id, computerInstances);
 
         simulations.put(id, randomOptimization);
 

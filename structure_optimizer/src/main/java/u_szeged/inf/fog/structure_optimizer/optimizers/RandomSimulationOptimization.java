@@ -43,7 +43,7 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
             var computerInstances = this.computerInstances
                     .stream()
                     .map(computer -> computer.toBuilder()
-                            .count(random.nextInt(4) + 1)
+                            .count(random.nextInt(4))
                             .build())
                     .toList();
 

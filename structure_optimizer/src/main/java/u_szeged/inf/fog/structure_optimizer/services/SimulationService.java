@@ -34,9 +34,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -52,6 +50,8 @@ public class SimulationService {
     private static final Pattern TaskCompleted = Pattern.compile("Completed: (\\d+)/(\\d+)");
 
     private static final Lock lock = new ReentrantLock();
+
+    private static final ExecutorService executorService = Executors.newFixedThreadPool(1);
 
     public SimulationService() {
     }
@@ -78,10 +78,15 @@ public class SimulationService {
 
         try {
             // create a new temp directory
-            var nextTempDirectory = Files.createTempDirectory("structure_optimizer-" + model.getId()).toFile();
-            ScenarioBase.resultDirectory = nextTempDirectory.getAbsolutePath();
+            //var nextTempDirectory = Files.createTempDirectory("structure_optimizer-" + model.getId()).toFile();
+            //ScenarioBase.resultDirectory = nextTempDirectory.getAbsolutePath();
 
             workflowArchitecture = getWorkflowArchitecture(model);
+            var workflowArchitectureComputerCount = workflowArchitecture.size();
+
+            if (workflowArchitectureComputerCount == 0) {
+                throw new Exception("No computers found in the simulation model");
+            }
 
             String workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/CyberShake_100.xml";
             workflowFile = ScientificWorkflowParser.parseToIotWorkflow(workflowFile);
@@ -90,11 +95,14 @@ public class SimulationService {
 
             new WorkflowExecutor(new MaxMinScheduler(workflowArchitecture));
 
-            CompletableFuture.supplyAsync(() -> {
-                        Timed.simulateUntilLastEvent();
-                        return true;
-                    })
-                    .get(15, TimeUnit.SECONDS);
+            var task = new CompletableFuture<Boolean>();
+
+            executorService.submit(() -> {
+                Timed.simulateUntilLastEvent();
+                task.complete(true);
+            });
+
+            task.get(1, TimeUnit.SECONDS);
 
             ScenarioBase.logStreamProcessing();
         } catch (TimeoutException e) {
@@ -218,7 +226,7 @@ public class SimulationService {
         var simulationMapping = new HashMap<SimulationComputerInstance, List<WorkflowComputingAppliance>>();
 
         var workflowArchitecture = new HashMap<WorkflowComputingAppliance, Instance>();
-        String cloudfile = ScenarioBase.resourcePath + "LPDS_original.xml";
+        String cloudfile = ScenarioBase.resourcePath + "LPDS_magic.xml";
 
         for (var computerInstance : model.getInstances()) {
             var counter = 0;

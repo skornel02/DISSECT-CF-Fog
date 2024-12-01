@@ -13,7 +13,23 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["runSimulation"];
+        post: operations["runRandomSimulation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/simulations/genetic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runGeneticSimulation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -147,7 +163,31 @@ export type SchemaSimulationResult = components['schemas']['SimulationResult'];
 export type SchemaSimulationStatusDto = components['schemas']['SimulationStatusDto'];
 export type $defs = Record<string, never>;
 export interface operations {
-    runSimulation: {
+    runRandomSimulation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulationStructure"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SimulationStartedDto"];
+                };
+            };
+        };
+    };
+    runGeneticSimulation: {
         parameters: {
             query?: never;
             header?: never;

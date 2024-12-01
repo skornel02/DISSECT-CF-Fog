@@ -69,6 +69,7 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
         </TooltipProvider>
       );
     },
+    sortingFn: "alphanumeric",
     accessorKey: 'result.executionTime',
     accessorFn: (row) => row.result?.executionTime ?? 'N/A',
   },
@@ -93,6 +94,7 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
         </TooltipProvider>
       );
     },
+    sortingFn: "alphanumeric",
     accessorKey: 'result.totalCost',
     accessorFn: (row) => row.result?.totalCost ?? 'N/A',
   },
@@ -117,6 +119,7 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
         </TooltipProvider>
       );
     },
+    sortingFn: "alphanumeric",
     accessorKey: 'result.totalEnergyConsumption',
     accessorFn: (row) => row.result?.totalEnergyConsumption ?? 'N/A',
   },
