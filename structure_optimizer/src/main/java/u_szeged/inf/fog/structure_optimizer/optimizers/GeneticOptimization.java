@@ -27,8 +27,11 @@ public class GeneticOptimization extends BaseSimulationOptimization {
             List<SimulationComputerInstance> computerInstances) {
         super(service, id, computerInstances);
 
+        ClassLoader contextClassLoader = this.getClass().getClassLoader();
 
         worker = new Thread(() -> {
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
+
             var chromosomes = new ArrayList<IntegerChromosome>();
             for (var computer : computerInstances) {
                 chromosomes.add(IntegerChromosome.of(0, MAX_COMPUTERS));
