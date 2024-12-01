@@ -15,7 +15,7 @@ import java.util.Optional;
 @Getter
 public abstract class BaseSimulationOptimization {
 
-    private final SimulationService service;
+    protected final SimulationService service;
 
     private final String id;
 

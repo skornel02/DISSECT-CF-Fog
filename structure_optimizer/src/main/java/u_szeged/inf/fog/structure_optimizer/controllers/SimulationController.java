@@ -41,8 +41,15 @@ public class SimulationController {
     }
 
     @PostMapping("/api/simulations/random")
-    public ResponseEntity<SimulationStartedDto> runSimulation(@RequestBody SimulationStructure structure) {
+    public ResponseEntity<SimulationStartedDto> runRandomSimulation(@RequestBody SimulationStructure structure) {
         var started = optimizationService.startRandomOptimization(structure);
+
+        return ResponseEntity.ok(started);
+    }
+
+    @PostMapping("/api/simulations/genetic")
+    public ResponseEntity<SimulationStartedDto> runGeneticSimulation(@RequestBody SimulationStructure structure) {
+        var started = optimizationService.startGeneticOptimization(structure);
 
         return ResponseEntity.ok(started);
     }
