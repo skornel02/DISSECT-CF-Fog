@@ -15,6 +15,8 @@ import java.util.function.Function;
 
 public class GeneticOptimization extends BaseSimulationOptimization {
 
+    private final ClassLoader contextClassLoader;
+
     private static final int MAX_COMPUTERS = 10;
 
     private boolean isFinished = false;
@@ -27,7 +29,7 @@ public class GeneticOptimization extends BaseSimulationOptimization {
             List<SimulationComputerInstance> computerInstances) {
         super(service, id, computerInstances);
 
-        ClassLoader contextClassLoader = this.getClass().getClassLoader();
+        contextClassLoader = this.getClass().getClassLoader();
 
         worker = new Thread(() -> {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -60,6 +62,8 @@ public class GeneticOptimization extends BaseSimulationOptimization {
 
     private Function<Genotype<IntegerGene>, Long> evalPidGenes() {
         return (gt) -> {
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
+
             var simulation = new SimulationModel();
 
             AtomicInteger index = new AtomicInteger();
