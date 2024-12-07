@@ -71,7 +71,15 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
     },
     sortingFn: "alphanumeric",
     accessorKey: 'result.executionTime',
-    accessorFn: (row) => row.result?.executionTime ?? 'N/A',
+    accessorFn: (row) => {
+      let value = row.result?.executionTime ?? 'N/A';
+
+      if (value === -1) {
+        value = 'Error';
+      }
+
+      return value;
+    },
   },
   {
     header: ({ column }) => {
@@ -96,7 +104,15 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
     },
     sortingFn: "alphanumeric",
     accessorKey: 'result.totalCost',
-    accessorFn: (row) => row.result?.totalCost ?? 'N/A',
+    accessorFn: (row) => {
+      let value = row.result?.totalCost ?? 'N/A';
+
+      if (value === -1) {
+        value = 'Error';
+      }
+
+      return value;
+    },
   },
   {
     header: ({ column }) => {
@@ -121,7 +137,15 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
     },
     sortingFn: "alphanumeric",
     accessorKey: 'result.totalEnergyConsumption',
-    accessorFn: (row) => row.result?.totalEnergyConsumption ?? 'N/A',
+    accessorFn: (row) => {
+      let value = row.result?.totalEnergyConsumption ?? 'N/A';
+
+      if (value === -1) {
+        value = 'Error';
+      }
+
+      return value;
+    },
   },
   {
     accessorKey: 'result',

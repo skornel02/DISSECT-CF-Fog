@@ -18,10 +18,10 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 RUN pnpm run build
 
-FROM openjdk:21-jdk-slim as java
+FROM openjdk:21-jdk-slim AS java
 
 # Build backend (and java dependencies)
-FROM java as build
+FROM java AS build
 
 LABEL maintainer="stefan.kornel@stud.u-szeged.hu"
 
@@ -50,7 +50,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn clean package spring-boot:repackage -Dmaven.test.skip=true -Dcheckstyle.skip
 
 # Create minimal final image
-FROM java as prod
+FROM java AS prod
 
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
