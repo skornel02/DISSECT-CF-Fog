@@ -68,6 +68,8 @@ export interface components {
             processingPerTick?: number;
             /** Format: int64 */
             memory?: number;
+            /** Format: double */
+            pricePerTick?: number;
         };
         RegionConnection: {
             from?: string;
@@ -81,8 +83,6 @@ export interface components {
             latitude?: number;
             /** Format: double */
             longitude?: number;
-            /** Format: int32 */
-            interRegionLatency?: number;
         };
         SimulationStructure: {
             computerTypes?: components["schemas"]["ComputerSpecification"][];
@@ -110,6 +110,8 @@ export interface components {
             processingPerTick?: number;
             /** Format: int64 */
             memory?: number;
+            /** Format: double */
+            pricePerTick?: number;
             latencyMap?: {
                 [key: string]: number;
             };
@@ -119,6 +121,8 @@ export interface components {
             /** @enum {string} */
             status?: "Waiting" | "Processing" | "Finished";
             instances?: components["schemas"]["SimulationComputerInstance"][];
+            /** Format: int64 */
+            generation?: number;
             result?: components["schemas"]["SimulationResult"];
         };
         SimulationResult: {
@@ -214,7 +218,9 @@ export interface operations {
     getSimulation: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-None-Match"?: string;
+            };
             path: {
                 id: string;
             };

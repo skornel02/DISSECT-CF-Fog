@@ -35,6 +35,8 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
 
             for (var simulation : simulations) {
                 service.runSimulation(simulation);
+
+                updateLastUpdated();
             }
         });
     }

@@ -77,8 +77,7 @@ export default function StructureSaveLoad({
         </CardHeader>
         <CardContent>
           <Button onClick={() => {
-            const data = JSON.stringify(structure);
-            const blob = new Blob([data], { type: 'application/json' });
+            const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -88,9 +87,7 @@ export default function StructureSaveLoad({
           }}>Save</Button>
           <p>Save the structure to a JSON file</p>
           <Separator className="my-4"/>
-          <Textarea rows={jsonLines}>
-            {json}
-          </Textarea>
+          <Textarea rows={jsonLines} value={json} readOnly={true} />
         </CardContent>
       </Card>
     </>

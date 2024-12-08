@@ -80,9 +80,6 @@ export default function StructureInstanceEditor({
     data: regionRows,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    meta: {
-
-    }
   });
 
   return <>

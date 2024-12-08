@@ -6,6 +6,7 @@ import SimulationModelTable from '@/pages/simulations/status/components/simulati
 import { Button } from '@/components/ui/button.tsx';
 import { useCountdown } from 'usehooks-ts';
 import { Progress } from '@/components/ui/progress.tsx';
+import SimulationTrends from './components/simulation-trends';
 
 export default function SimulationStatusPage() {
   const { id } = useParams();
@@ -13,6 +14,8 @@ export default function SimulationStatusPage() {
   const [simulation, setSimulation] = useState<
     SchemaSimulationStatusDto | undefined | null
   >(undefined);
+
+  const [eTag, setETag] = useState<string | null>(null);
 
   const [count, { startCountdown, stopCountdown, resetCountdown }] =
     useCountdown({
@@ -31,20 +34,27 @@ export default function SimulationStatusPage() {
           id,
         },
       },
+      headers: {
+        'If-None-Match': eTag,
+      }
     });
 
-    if (!response.ok || !data) {
+    if (response.status === 304) {
+      // Not modified
+      return;
+    } else if (!response.ok || !data) {
       setSimulation(null);
     } else {
       setSimulation(data);
+      setETag(response.headers.get('Etag'));
     }
-  }, [id]);
+  }, [id, eTag]);
 
   useEffect(() => {
     // noinspection JSIgnoredPromiseFromCall
     refreshStatus();
     startCountdown();
-  }, [refreshStatus]);
+  }, []);
 
   useEffect(() => {
     if (simulation?.isRunning === false) {
@@ -87,6 +97,12 @@ export default function SimulationStatusPage() {
           <span className="mb-4">Simulation finished</span>
         )}
       </div>
+
+      <h2 className="mb-4 text-center mt-4">Trends</h2>
+
+      <SimulationTrends data={simulation.simulations} />
+
+      <h2 className="mb-4 text-center mt-4">Simulations</h2>
 
       <SimulationModelTable data={simulation.simulations} />
     </div>

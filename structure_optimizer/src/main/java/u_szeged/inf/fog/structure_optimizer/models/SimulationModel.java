@@ -15,6 +15,8 @@ public class SimulationModel {
 
     private List<SimulationComputerInstance> instances;
 
+    private long generation;
+
     private SimulationResult result;
 
     public Optional<SimulationResult> getResult() {
