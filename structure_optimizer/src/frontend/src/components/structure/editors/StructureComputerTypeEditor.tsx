@@ -23,6 +23,7 @@ export default function StructureComputerTypeEditor({
     cores: 2,
     memory: 4294967296,
     processingPerTick: 0.001,
+    pricePerTick: 1,
   });
 
   const computerTypes = useMemo(
@@ -132,6 +133,31 @@ export default function StructureComputerTypeEditor({
       )
     },
     {
+      accessorKey: 'pricePerTick',
+      header: 'Price per tick',
+      cell: ({ row }) => (
+        <EditableTableCell
+          getValue={() => row.original.pricePerTick?.toString() ?? "0"}
+          setValue={(value) => {
+            setStructure((_) => ({
+              ..._,
+              computerTypes: computerTypes.map((r) => {
+                if (r.name === row.original.name) {
+                  return {
+                    ...r,
+                    pricePerTick: parseFloat(value),
+                  };
+                }
+                return r;
+              }),
+            }));
+          }}
+          type='number'
+          min={0}
+        />
+      )
+    },
+    {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
@@ -215,6 +241,18 @@ export default function StructureComputerTypeEditor({
               }
             />
           </div>
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="pricePerTick">Price per tick</Label>
+            <Input
+              type="number"
+              id="pricePerTick"
+              min={0}
+              value={newComputerSpec.pricePerTick}
+              onChange={(val) =>
+                setNewComputerSpec((_) => ({ ..._, pricePerTick: parseFloat(val.target.value) }))
+              }
+            />
+          </div>
           <Button
             className="btn btn-primary"
             onClick={() => {
@@ -245,6 +283,7 @@ export default function StructureComputerTypeEditor({
                 cores: 2,
                 memory: 4294967296,
                 processingPerTick: 0.001,
+                pricePerTick: 1,
               });
             }}>
             Add computer type

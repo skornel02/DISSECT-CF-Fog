@@ -6,6 +6,7 @@ import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -25,6 +26,8 @@ public abstract class BaseSimulationOptimization {
 
     protected List<SimulationModel> simulations = new ArrayList<>();
 
+    private LocalDateTime lastUpdated;
+
     public BaseSimulationOptimization(
             SimulationService service,
             String id,
@@ -32,11 +35,14 @@ public abstract class BaseSimulationOptimization {
         this.service = service;
         this.id = id;
         this.computerInstances = computerInstances;
+
+        this.lastUpdated = LocalDateTime.now();
     }
 
     public String getSimulationType() {
         return switch (this) {
             case RandomSimulationOptimization randomSimulationOptimization -> "Random";
+            case GeneticSimulationOptimization geneticSimulationOptimization -> "Genetic";
             default -> "Unknown";
         };
     }
@@ -76,5 +82,9 @@ public abstract class BaseSimulationOptimization {
         return simulations.stream()
                 .filter(simulation -> simulation.getResult().isPresent())
                 .min(Comparator.comparingDouble(simulation -> simulation.getResult().get().getTotalEnergyConsumption()));
+    }
+
+    public void updateLastUpdated() {
+        this.lastUpdated = LocalDateTime.now();
     }
 }

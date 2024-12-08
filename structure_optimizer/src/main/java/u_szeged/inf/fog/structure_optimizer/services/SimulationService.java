@@ -56,6 +56,7 @@ public class SimulationService {
     public SimulationService() {
     }
 
+
     public SimulationResult runSimulation(SimulationModel model) {
         var resultBuiilder = SimulationResult.builder()
                 .id(model.getId());
@@ -235,23 +236,23 @@ public class SimulationService {
             var counter = 0;
             var appliances = new ArrayList<WorkflowComputingAppliance>();
 
-            for (var i = 0; i < computerInstance.getCount(); i++) {
-                var id = computerInstance.getRegion() + "-" + computerInstance.getComputerType() + "-" + ++counter;
+            for (var i = 0; i < computerInstance.count(); i++) {
+                var id = computerInstance.region() + "-" + computerInstance.computerType() + "-" + ++counter;
 
                 VirtualAppliance va = new VirtualAppliance(id + "-va", 100, 0, false, 1073741824L);
                 AlterableResourceConstraints arc = new AlterableResourceConstraints(
-                        computerInstance.getCores(),
-                        computerInstance.getProcessingPerTick(),
-                        computerInstance.getMemory());
+                        computerInstance.cores(),
+                        computerInstance.processingPerTick(),
+                        computerInstance.memory());
 //                AlterableResourceConstraints arc = new AlterableResourceConstraints(2, 0.001, 4294967296L);
 
                 WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(
                         cloudfile,
                         id + "-cloud",
-                        new GeoLocation(computerInstance.getLatitude(), computerInstance.getLongitude()),
+                        new GeoLocation(computerInstance.latitude(), computerInstance.longitude()),
                         1000);
 
-                Instance instance = new Instance(id + "-instance", va, arc, 0.051 / 60 / 60 / 1000, 1);
+                Instance instance = new Instance(id + "-instance", va, arc, computerInstance.pricePerTick(), 1);
 
                 appliances.add(cloud);
                 workflowArchitecture.put(cloud, instance);
@@ -263,13 +264,13 @@ public class SimulationService {
         }
 
         for (var computerInstance : model.getInstances()) {
-            for (var targetRegionEntry : computerInstance.getLatencyMap().entrySet()) {
+            for (var targetRegionEntry : computerInstance.latencyMap().entrySet()) {
                 var targetRegion = targetRegionEntry.getKey();
                 var latency = targetRegionEntry.getValue();
 
                 var targetRegionAppliances = simulationMapping.entrySet()
                         .stream()
-                        .filter(entry -> entry.getKey().getRegion().equals(targetRegion))
+                        .filter(entry -> entry.getKey().region().equals(targetRegion))
                         .flatMap(entry -> entry.getValue().stream())
                         .toList();
 

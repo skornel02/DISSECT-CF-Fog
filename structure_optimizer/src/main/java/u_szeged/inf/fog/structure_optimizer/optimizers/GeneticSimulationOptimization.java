@@ -13,17 +13,18 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-public class GeneticOptimization extends BaseSimulationOptimization {
+public class GeneticSimulationOptimization extends BaseSimulationOptimization {
 
     private final ClassLoader contextClassLoader;
 
     private static final int MAX_COMPUTERS = 10;
 
+    private long currentGeneration;
     private boolean isFinished = false;
 
     private final Thread worker;
 
-    public GeneticOptimization(
+    public GeneticSimulationOptimization(
             SimulationService service,
             String id,
             List<SimulationComputerInstance> computerInstances) {
@@ -54,6 +55,10 @@ public class GeneticOptimization extends BaseSimulationOptimization {
 
             var result = engine.stream()
                     .limit(100)
+                    .peek(er -> {
+                        currentGeneration = er.generation();
+                        System.out.println(er.generation());
+                    })
                     .collect(EvolutionResult.toBestGenotype());
 
             isFinished = true;
@@ -76,10 +81,13 @@ public class GeneticOptimization extends BaseSimulationOptimization {
 
             simulation.setId(UUID.randomUUID().toString());
             simulation.setInstances(computerInstances);
+            simulation.setGeneration(currentGeneration);
 
             simulations.add(simulation);
 
             var result = service.runSimulation(simulation);
+
+            updateLastUpdated();
 
             if (result.getException() != null) {
                 return Long.MAX_VALUE;

@@ -23,12 +23,18 @@ public class SimulationController {
     }
 
     @GetMapping("/api/simulations/{id}")
-    public ResponseEntity<SimulationStatusDto> getSimulation(@PathVariable String id) {
+    public ResponseEntity<SimulationStatusDto> getSimulation(
+            @PathVariable String id,
+            @RequestHeader(name = "If-None-Match", required = false) String ifNoneMatch) {
         if (!optimizationService.getSimulations().containsKey(id)) {
             return ResponseEntity.notFound().build();
         }
 
         var simulation = optimizationService.getSimulations().get(id);
+
+        if (simulation.getLastUpdated().toString().equals(ifNoneMatch)) {
+            return ResponseEntity.status(304).build();
+        }
 
         var result = new SimulationStatusDto(
                 simulation.getId(),
@@ -37,7 +43,9 @@ public class SimulationController {
                 simulation.getSimulations()
         );
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok()
+                .eTag(simulation.getLastUpdated().toString())
+                .body(result);
     }
 
     @PostMapping("/api/simulations/random")

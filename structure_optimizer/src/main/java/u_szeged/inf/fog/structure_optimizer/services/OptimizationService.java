@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import u_szeged.inf.fog.structure_optimizer.dtos.SimulationStartedDto;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.optimizers.BaseSimulationOptimization;
-import u_szeged.inf.fog.structure_optimizer.optimizers.GeneticOptimization;
+import u_szeged.inf.fog.structure_optimizer.optimizers.GeneticSimulationOptimization;
 import u_szeged.inf.fog.structure_optimizer.optimizers.RandomSimulationOptimization;
 import u_szeged.inf.fog.structure_optimizer.structures.RegionConnection;
 import u_szeged.inf.fog.structure_optimizer.structures.SimulationStructure;
@@ -47,7 +47,7 @@ public class OptimizationService {
 
         var computerInstances = createComputerInstanceListFromStructure(structure);
 
-        var randomOptimization = new GeneticOptimization(simulationService, id, computerInstances);
+        var randomOptimization = new GeneticSimulationOptimization(simulationService, id, computerInstances);
 
         simulations.put(id, randomOptimization);
 
@@ -74,33 +74,26 @@ public class OptimizationService {
 
                     var regionLatencyMap = new HashMap<String, Integer>();
                     for (var targetRegion : structure.getRegions()) {
-                        if (region.equals(targetRegion)) {
-                            regionLatencyMap.put(targetRegion.name(), region.interRegionLatency());
-                        } else {
-                            regionLatencyMap.put(targetRegion.name(), structure.getRegionConnections()
-                                    .stream()
-                                    .filter((connection) -> connection.containsRegion(region.name()) && connection.containsRegion(targetRegion.name()))
-                                    .findFirst()
-                                    .map(RegionConnection::latency)
-                                    .orElse(structure.getDefaultLatency()));
-                        }
+                        regionLatencyMap.put(targetRegion.name(), structure.getRegionConnections()
+                                .stream()
+                                .filter((connection) -> connection.containsRegion(region.name()) && connection.containsRegion(targetRegion.name()))
+                                .findFirst()
+                                .map(RegionConnection::latency)
+                                .orElse(structure.getDefaultLatency()));    
                     }
 
-                    var computer = new SimulationComputerInstance();
-                    computer.setCount(0);
-
-                    computer.setComputerType(computerType.name());
-                    computer.setCores(computerType.cores());
-                    computer.setProcessingPerTick(computerType.processingPerTick());
-                    computer.setMemory(computerType.memory());
-
-                    computer.setRegion(region.name());
-                    computer.setLatitude(region.latitude());
-                    computer.setLongitude(region.longitude());
-
-                    computer.setLatencyMap(regionLatencyMap);
-
-                    return computer;
+                    return new SimulationComputerInstance(
+                            0,
+                            region.name(),
+                            region.latitude(),
+                            region.longitude(),
+                            computerType.name(),
+                            computerType.cores(),
+                            computerType.processingPerTick(),
+                            computerType.memory(),
+                            computerType.pricePerTick(),
+                            regionLatencyMap
+                    );
                 })
                 .toList();
     }

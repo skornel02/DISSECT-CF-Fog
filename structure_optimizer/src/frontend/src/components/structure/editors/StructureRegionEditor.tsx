@@ -39,7 +39,6 @@ export default function StructureRegionEditor({
     name: '',
     latitude: 0,
     longitude: 0,
-    interRegionLatency: 15,
   });
 
   const regions = useMemo(
@@ -124,31 +123,6 @@ export default function StructureRegionEditor({
       )
     },
     {
-      accessorKey: 'interRegionLatency',
-      header: 'Inter region latency',
-      cell: ({ row }) => (
-        <EditableTableCell
-          getValue={() => row.original.interRegionLatency?.toString() ?? "0"}
-          setValue={(value) => {
-            setStructure((_) => ({
-              ..._,
-              regions: regions.map((r) => {
-                if (r.name === row.original.name) {
-                  return {
-                    ...r,
-                    interRegionLatency: parseInt(value),
-                  };
-                }
-                return r;
-              }),
-            }));
-          }}
-          type='number'
-          min={0}
-        />
-      )
-    },
-    {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
@@ -220,18 +194,6 @@ export default function StructureRegionEditor({
               }
             />
           </div>
-          <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="interRegionLatency">Inter region latency</Label>
-            <Input
-              type="number"
-              id="interRegionLatency"
-              min={0}
-              value={newRegion.interRegionLatency}
-              onChange={(val) =>
-                setNewRegion((_) => ({ ..._, interRegionLatency: parseInt(val.target.value) }))
-              }
-            />
-          </div>
           <Button
             className="btn btn-primary"
             onClick={() => {
@@ -261,7 +223,6 @@ export default function StructureRegionEditor({
                 name: '',
                 latitude: 0,
                 longitude: 0,
-                interRegionLatency: 0,
               });
             }}>
             Add region
