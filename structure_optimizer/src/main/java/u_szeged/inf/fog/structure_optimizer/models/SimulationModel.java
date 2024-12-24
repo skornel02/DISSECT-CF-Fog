@@ -22,4 +22,8 @@ public class SimulationModel {
     public Optional<SimulationResult> getResult() {
         return Optional.ofNullable(result);
     }
+
+    public long getInstancesHash() {
+        return 0;
+    }
 }

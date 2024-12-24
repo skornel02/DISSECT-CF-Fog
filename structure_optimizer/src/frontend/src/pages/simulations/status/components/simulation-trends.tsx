@@ -181,7 +181,7 @@ export default function SimulationTrends({
             />
             <Area
               dataKey="minExecutionTime"
-              type="natural"
+              type="monotone"
               fill="url(#fillDesktop)"
               stroke="var(--color-desktop)"
               stackId="a"

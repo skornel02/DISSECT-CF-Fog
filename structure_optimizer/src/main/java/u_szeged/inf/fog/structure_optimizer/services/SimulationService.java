@@ -1,5 +1,7 @@
 package u_szeged.inf.fog.structure_optimizer.services;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.AlterableResourceConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.io.VirtualAppliance;
@@ -31,6 +33,7 @@ import u_szeged.inf.fog.structure_optimizer.models.SimulationResult;
 import u_szeged.inf.fog.structure_optimizer.utils.SimpleLogHandler;
 
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,21 +56,35 @@ public class SimulationService {
 
     private static final ExecutorService executorService = Executors.newFixedThreadPool(1);
 
+    private static final LoadingCache<List<SimulationComputerInstance>, SimulationResult> simulationCache = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(Duration.ofHours(1))
+            .build(a -> null);
+
     public SimulationService() {
     }
 
 
     public SimulationResult runSimulation(SimulationModel model) {
+        var cachedResult = simulationCache.getIfPresent(model.getInstances());
+        if (cachedResult != null) {
+            log.info("Simulation result found in cache!");
+
+            model.setResult(cachedResult);
+            model.setStatus(SimulationStatus.Finished);
+
+            return cachedResult;
+        }
+
         var resultBuiilder = SimulationResult.builder()
                 .id(model.getId());
 
-        HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture = null;
+        HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture;
+        var logs = new StringBuffer();
 
         lock.lock();
-
         model.setStatus(SimulationStatus.Processing);
 
-        var logs = new StringBuffer();
         var logHandler = new SimpleLogHandler(log -> {
             logs.append(log.getLevel().toString())
                     .append(" | ")
@@ -221,6 +238,8 @@ public class SimulationService {
         model.setStatus(SimulationStatus.Finished);
 
         lock.unlock();
+
+        simulationCache.put(model.getInstances(), finishedResult);
 
         return finishedResult;
     }
