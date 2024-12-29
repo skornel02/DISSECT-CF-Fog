@@ -69,10 +69,6 @@ public class SimulationService {
         var cachedResult = simulationCache.getIfPresent(model.getInstances());
         if (cachedResult != null) {
             log.info("Simulation result found in cache!");
-
-            model.setResult(cachedResult);
-            model.setStatus(SimulationStatus.Finished);
-
             return cachedResult;
         }
 
@@ -233,9 +229,6 @@ public class SimulationService {
                 .completedTasks(completedTasks)
                 .executionTime(executionTime)
                 .build();
-
-        model.setResult(finishedResult);
-        model.setStatus(SimulationStatus.Finished);
 
         lock.unlock();
 

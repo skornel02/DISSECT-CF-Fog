@@ -124,6 +124,10 @@ export interface components {
             /** Format: int64 */
             generation?: number;
             result?: components["schemas"]["SimulationResult"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
         };
         SimulationResult: {
             id: string;
@@ -139,8 +143,8 @@ export interface components {
             totalTasks: number;
             /** Format: int32 */
             completedTasks: number;
-            errorMessage?: string;
             errorStackTrace?: string;
+            errorMessage?: string;
         };
         SimulationStatusDto: {
             id: string;
@@ -217,7 +221,9 @@ export interface operations {
     };
     getSimulation: {
         parameters: {
-            query?: never;
+            query?: {
+                lastUpdated?: string;
+            };
             header?: {
                 "If-None-Match"?: string;
             };

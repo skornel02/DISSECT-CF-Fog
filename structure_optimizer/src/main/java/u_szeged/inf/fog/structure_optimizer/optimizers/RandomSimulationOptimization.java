@@ -7,6 +7,7 @@ import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -34,7 +35,10 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
 
             for (var simulation : simulations) {
-                service.runSimulation(simulation);
+                var result = service.runSimulation(simulation);
+                simulation.setResult(result);
+                simulation.setStatus(SimulationStatus.Finished);
+                simulation.setFinishedAt(OffsetDateTime.now());
 
                 updateLastUpdated();
             }

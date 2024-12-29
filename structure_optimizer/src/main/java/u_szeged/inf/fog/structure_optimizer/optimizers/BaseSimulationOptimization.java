@@ -7,10 +7,12 @@ import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @EqualsAndHashCode
 @Getter
@@ -24,9 +26,9 @@ public abstract class BaseSimulationOptimization {
 
     protected boolean isRunning = false;
 
-    protected List<SimulationModel> simulations = new ArrayList<>();
+    protected List<SimulationModel> simulations = new CopyOnWriteArrayList<>();
 
-    private LocalDateTime lastUpdated;
+    private OffsetDateTime lastUpdated;
 
     public BaseSimulationOptimization(
             SimulationService service,
@@ -36,7 +38,7 @@ public abstract class BaseSimulationOptimization {
         this.id = id;
         this.computerInstances = computerInstances;
 
-        this.lastUpdated = LocalDateTime.now();
+        this.lastUpdated = OffsetDateTime.now();
     }
 
     public String getSimulationType() {
@@ -85,6 +87,6 @@ public abstract class BaseSimulationOptimization {
     }
 
     public void updateLastUpdated() {
-        this.lastUpdated = LocalDateTime.now();
+        this.lastUpdated = OffsetDateTime.now();
     }
 }

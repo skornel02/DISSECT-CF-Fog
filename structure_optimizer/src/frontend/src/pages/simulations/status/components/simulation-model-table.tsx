@@ -1,157 +1,106 @@
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table';
 import { SchemaSimulationModel } from '@/lib/backend';
+import { useMemo } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table.tsx';
-import { useState } from 'react';
+  MantineReactTable,
+  useMantineReactTable,
+  type MRT_ColumnDef,
+} from 'mantine-react-table';
 import { Button } from '@/components/ui/button.tsx';
-import { ArrowUpDown, Map, Scroll } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Map, Scroll } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import humanizeDuration from 'humanize-duration';
 
-const columns: ColumnDef<SchemaSimulationModel>[] = [
-  // {
-  //   header: 'Id',
-  //   accessorKey: 'id',
-  // },
-  {
-    header: 'Status',
-    accessorKey: 'status',
-    enableGrouping: true,
-    cell: ({ row }) => {
-      return (<div key={'row-status-' + row.original.id} className='flex flex-col justify-center items-center'>
-        <span className='text-center my-1'> {row.original.status} </span>
+export default function SimulationModelTable({
+  data,
+}: {
+  data: SchemaSimulationModel[];
+}) {
+  
+  const columns = useMemo<
+    MRT_ColumnDef<SchemaSimulationModel>[]
+  >(() => {
+    const columns: MRT_ColumnDef<SchemaSimulationModel>[] = [
+      {
+        id: 'id',
+        accessorFn: (_) => _.id,
+        header: 'Id',
+        enableHiding: true,
+      },
+      {
+        id: 'status',
+        accessorFn: (_) => _.status,
+        header: 'Status',
+        sortingFn: 'text',
+        filterVariant: 'select',
+        mantineFilterSelectProps: {
+          data: ["Waiting", "Processing", "Finished"],
+        },
+        maxSize: 75,
+      },
+      {
+        id: 'executionTime',
+        header: 'ET (ms)',
+        sortingFn: 'basic',
+        accessorFn: (_) => _.result?.executionTime,
+        Cell: ({ cell }) => cell.getValue<string>() ? (
+          <span>{humanizeDuration(Number(cell.getValue<string>()), { round: true })}</span>
+        ) : (<span>-</span>),
+        maxSize: 125,
+      },
+      {
+        id: 'totalCost',
+        accessorFn: (_) => _.result?.totalCost.toLocaleString(undefined, { maximumFractionDigits: 3}),
+        header: 'TC',
+        sortingFn: 'basic',
+        maxSize: 125,
+      },
+      {
+        id: 'energyConsumption',
+        accessorFn: (_) => _.result?.totalEnergyConsumption.toLocaleString(undefined, { maximumFractionDigits: 3}),
+        header: 'TEC',
+        sortingFn: 'basic',
+        maxSize: 150,
+      },
+      {
+        id: 'finishedAt',
+        accessorFn: (_) => _.finishedAt,
+        header: 'Finished At',
+        sortingFn: 'datetime',
+        Cell: ({ cell }) => cell.getValue<string>() ? (
+          <span>{new Date(cell.getValue<string>()).toLocaleString()}</span>
+        ) : (<span>-</span>),
+        maxSize: 85,
+      },
+    ];
 
-        {row.original.result
-          && row.original.result.completedTasks === row.original.result.totalTasks
-          && row.original.result.totalTasks !== -1
-          && (
-            <Badge className='justify-center'>Success</Badge>
-          )}
-        {row.original.result && row.original.result.errorMessage !== null && (
-          <Badge variant='destructive' className='justify-center'>Failed</Badge>
-        )}
+    return columns;
+  }, []);
 
-      </div>);
-    }
-  },
-  {
-    header: ({ column }) => {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-                ET (ms)
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Execution Time (ms)</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
+
+  const table = useMantineReactTable({
+    columns,
+    data: data ?? [],
+    getRowId: (row) => row.id,
+    state: {
+      isLoading: false,
+      showProgressBars: false,
+      showAlertBanner: false,
     },
-    sortingFn: "alphanumeric",
-    accessorKey: 'result.executionTime',
-    accessorFn: (row) => {
-      let value = row.result?.executionTime ?? 'N/A';
-
-      if (value === -1) {
-        value = 'Error';
-      }
-
-      return value;
+    enablePagination: false,
+    enableRowVirtualization: true,
+    createDisplayMode: undefined,
+    editDisplayMode: undefined,
+    initialState: {
+      columnVisibility: {
+        id: false,
+      },
+      density: 'xs',
     },
-  },
-  {
-    header: ({ column }) => {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-
-              <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-                TC
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Test Cost</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    },
-    sortingFn: "alphanumeric",
-    accessorKey: 'result.totalCost',
-    accessorFn: (row) => {
-      let value = row.result?.totalCost ?? 'N/A';
-
-      if (value === -1) {
-        value = 'Error';
-      }
-
-      return value;
-    },
-  },
-  {
-    header: ({ column }) => {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-
-              <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-                TEC
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Test Energy Cost</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    },
-    sortingFn: "alphanumeric",
-    accessorKey: 'result.totalEnergyConsumption',
-    accessorFn: (row) => {
-      let value = row.result?.totalEnergyConsumption ?? 'N/A';
-
-      if (value === -1) {
-        value = 'Error';
-      }
-
-      return value;
-    },
-  },
-  {
-    accessorKey: 'result',
-    header: "Actions",
-    cell: ({ row }) => (
-      <>
+    enableRowActions: true,
+    positionActionsColumn: 'last',
+    renderRowActions: ({ row }) => (
+      <div className="flex flex-row gap-2">
         <Dialog>
           <DialogTrigger asChild>
             <Button
@@ -194,72 +143,19 @@ const columns: ColumnDef<SchemaSimulationModel>[] = [
             </DialogContent>
           </Dialog>
         )}
-      </>
+      </div>
     ),
-  }
-];
-
-export default function SimulationModelTable({
-  data,
-}: {
-  data: SchemaSimulationModel[];
-}) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    state: {
-      sorting,
-    },
+    mantineTableProps: {
+      style: {
+        height: '100%',
+      },
+    }
   });
 
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && 'selected'}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+    <div className="rounded-md border h-full px-8">
+      <MantineReactTable table={table} />
     </div>
   );
 }

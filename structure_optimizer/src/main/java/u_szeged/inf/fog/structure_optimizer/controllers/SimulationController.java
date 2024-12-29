@@ -9,7 +9,9 @@ import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.services.OptimizationService;
 import u_szeged.inf.fog.structure_optimizer.structures.SimulationStructure;
 
-import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 @Tag(name = "Simulations", description = "Simulation related operations")
 @RestController
@@ -25,6 +27,7 @@ public class SimulationController {
     @GetMapping("/api/simulations/{id}")
     public ResponseEntity<SimulationStatusDto> getSimulation(
             @PathVariable String id,
+            @RequestParam(required = false) String lastUpdated,
             @RequestHeader(name = "If-None-Match", required = false) String ifNoneMatch) {
         if (!optimizationService.getSimulations().containsKey(id)) {
             return ResponseEntity.notFound().build();
@@ -36,15 +39,25 @@ public class SimulationController {
             return ResponseEntity.status(304).build();
         }
 
+        var simulations = simulation.getSimulations()
+                .stream()
+                .filter(s -> lastUpdated == null || s == null || s.getCreatedAt().isAfter(OffsetDateTime.parse(lastUpdated)))
+                .toList();
+
+        var maxSimulationsFinished = simulations.stream()
+                .filter(s -> s.getFinishedAt() != null)
+                .min((a, b) -> b.getFinishedAt().compareTo(a.getFinishedAt()));
+
         var result = new SimulationStatusDto(
                 simulation.getId(),
                 simulation.getSimulationType(),
                 !simulation.isDone(),
-                simulation.getSimulations()
+                simulations
         );
 
         return ResponseEntity.ok()
                 .eTag(simulation.getLastUpdated().toString())
+                .header("X-Last-Updated", maxSimulationsFinished.map(SimulationModel::getFinishedAt).orElse(OffsetDateTime.now().minusMinutes(1)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
                 .body(result);
     }
 

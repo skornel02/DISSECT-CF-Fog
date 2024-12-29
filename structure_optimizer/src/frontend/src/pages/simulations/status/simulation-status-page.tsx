@@ -1,12 +1,11 @@
 import { useParams } from 'react-router-dom';
-import { SchemaSimulationStatusDto } from '@/lib/backend';
+import { SchemaSimulationModel, SchemaSimulationStatusDto } from '@/lib/backend';
 import { useCallback, useEffect, useState } from 'react';
 import { client } from '@/lib/backend-client.ts';
 import SimulationModelTable from '@/pages/simulations/status/components/simulation-model-table.tsx';
 import { Button } from '@/components/ui/button.tsx';
-import { useCountdown } from 'usehooks-ts';
-import { Progress } from '@/components/ui/progress.tsx';
 import SimulationTrends from './components/simulation-trends';
+import { useThrottledValue } from '@mantine/hooks';
 
 export default function SimulationStatusPage() {
   const { id } = useParams();
@@ -16,14 +15,12 @@ export default function SimulationStatusPage() {
   >(undefined);
 
   const [eTag, setETag] = useState<string | null>(null);
+  const [lastUpdatedVal, setLastUpdated] = useState<string | undefined>(undefined);
+  const lastUpdated = useThrottledValue(lastUpdatedVal, 500);
 
-  const [count, { startCountdown, stopCountdown, resetCountdown }] =
-    useCountdown({
-      countStart: 5,
-      intervalMs: 750,
-    });
+  const [simulations, setSimulations] = useState<SchemaSimulationModel[]>([]);
 
-  const refreshStatus = useCallback(async () => {
+  const refreshStatus = useCallback(async (eTag:string | null, lastUpdated: string | undefined) => {
     if (!id) {
       return;
     }
@@ -33,6 +30,9 @@ export default function SimulationStatusPage() {
         path: {
           id,
         },
+        query: {
+          lastUpdated,
+        }
       },
       headers: {
         'If-None-Match': eTag,
@@ -47,27 +47,34 @@ export default function SimulationStatusPage() {
     } else {
       setSimulation(data);
       setETag(response.headers.get('Etag'));
+
+      const nextLastUpdated = response.headers.get('X-Last-Updated');
+      if (nextLastUpdated && nextLastUpdated !== lastUpdated) {
+        setLastUpdated(nextLastUpdated);
+      }
+
+      setSimulations((prev) => ([
+        ...prev.filter((item) => item.status === 'Finished'),
+        ...data.simulations
+      ]))
     }
-  }, [id, eTag]);
+  }, [id]);
 
   useEffect(() => {
-    // noinspection JSIgnoredPromiseFromCall
-    refreshStatus();
-    startCountdown();
-  }, []);
+    let interval: NodeJS.Timeout | undefined;
 
-  useEffect(() => {
-    if (simulation?.isRunning === false) {
-      stopCountdown();
+    if (!simulation || simulation?.isRunning) {
+      // noinspection JSIgnoredPromiseFromCall
+      refreshStatus(eTag, lastUpdated);
+
+      interval = setInterval(() => {
+        // noinspection JSIgnoredPromiseFromCall
+        refreshStatus(eTag, lastUpdated);
+      }, 2000);
     }
 
-    if (count === 0) {
-      refreshStatus().then(() => {
-        resetCountdown();
-        startCountdown();
-      });
-    }
-  }, [count, simulation?.isRunning]);
+    return () => clearInterval(interval);
+  }, [refreshStatus, lastUpdated]);
 
   if (simulation === undefined) {
     return <div>Loading...</div>;
@@ -80,31 +87,20 @@ export default function SimulationStatusPage() {
   return (
     <div>
       <div className="flex justify-between align-center">
-        <h1 className="text-xl text-center ml-4 flex-grow-1">
-          Simulation #{id}
-        </h1>
         <div>
           {simulation.isRunning && (
-            <Button onClick={refreshStatus}>Refresh</Button>
+            <Button onClick={() => refreshStatus(eTag, lastUpdated)}>Refresh</Button>
           )}
         </div>
       </div>
 
-      <div className="flex justify-center items-center mt-4">
-        {simulation.isRunning ? (
-          <Progress value={count * 20} />
-        ) : (
-          <span className="mb-4">Simulation finished</span>
-        )}
-      </div>
-
       <h2 className="mb-4 text-center mt-4">Trends</h2>
 
-      <SimulationTrends data={simulation.simulations} />
+      <SimulationTrends data={simulations} />
 
       <h2 className="mb-4 text-center mt-4">Simulations</h2>
 
-      <SimulationModelTable data={simulation.simulations} />
+      <SimulationModelTable data={simulations} />
     </div>
   );
 }
