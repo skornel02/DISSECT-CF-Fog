@@ -32,7 +32,6 @@ import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationResult;
 import u_szeged.inf.fog.structure_optimizer.utils.SimpleLogHandler;
 
-import java.nio.file.Files;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;

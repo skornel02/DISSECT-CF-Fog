@@ -44,8 +44,6 @@ export default function Layout() {
 
   const path = useMatches();
 
-  console.log(path);
-
   return (
     <SidebarProvider open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
       <Sidebar collapsible="icon">
@@ -101,8 +99,8 @@ export default function Layout() {
                 .map((match, index) => (
                   <>
                     {match.pathname !== '/' && (
-                      <BreadcrumbSeparator>
-                        <BreadcrumbSeparator />
+                      <BreadcrumbSeparator key={`breadcrumb-${index}-bc`}>
+                        
                       </BreadcrumbSeparator>
                     )}
                     <BreadcrumbItem key={`breadcrumb-${index}`}>
