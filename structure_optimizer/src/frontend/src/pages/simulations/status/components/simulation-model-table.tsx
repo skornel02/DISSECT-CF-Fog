@@ -72,6 +72,13 @@ export default function SimulationModelTable({
         ) : (<span>-</span>),
         maxSize: 85,
       },
+      {
+        id: 'generation',
+        accessorFn: (_) => _.generation,
+        header: 'Generation',
+        sortingFn: 'basic',
+        maxSize: 80,
+      }
     ];
 
     return columns;
@@ -89,13 +96,17 @@ export default function SimulationModelTable({
     },
     enablePagination: false,
     enableRowVirtualization: true,
+    enableGrouping: true,
     createDisplayMode: undefined,
     editDisplayMode: undefined,
     initialState: {
       columnVisibility: {
         id: false,
+        generation: !data.some((item) => item.generation === -1),
       },
       density: 'xs',
+      grouping: data.some((item) => item.generation === -1) ? [] : ['generation'],
+      expanded: true,
     },
     enableRowActions: true,
     positionActionsColumn: 'last',

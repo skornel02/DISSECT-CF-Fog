@@ -6,7 +6,7 @@ export default function MapClickHandler({
 }: {
   onClick: LeafletMouseEventHandlerFn;
 }) {
-  const map = useMapEvents({
+  useMapEvents({
     click: onClick,
   });
 

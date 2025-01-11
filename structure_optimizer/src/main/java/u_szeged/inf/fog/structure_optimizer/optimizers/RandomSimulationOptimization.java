@@ -39,6 +39,7 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
                 simulation.setResult(result);
                 simulation.setStatus(SimulationStatus.Finished);
                 simulation.setFinishedAt(OffsetDateTime.now());
+                simulation.setGeneration(-1);
 
                 updateLastUpdated();
             }

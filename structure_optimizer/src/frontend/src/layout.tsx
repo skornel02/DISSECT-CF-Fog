@@ -89,7 +89,7 @@ export default function Layout() {
           )}
         </SidebarFooter>
       </Sidebar>
-      <main className="min-h-[100vh] w-full">
+      <main className="min-h-[100vh] w-full flex flex-col">
         <div className="flex justify-start mt-2 mb-4">
           <SidebarTrigger className="mx-2" />
           <Breadcrumb className="flex align-center">
