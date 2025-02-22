@@ -23,7 +23,7 @@ public class SimulationResult {
     @NotNull
     private double totalEnergyConsumption;
     @NotNull
-    private long executionTime;
+    private double executionTime;
 
     @NotNull
     private int totalTasks;

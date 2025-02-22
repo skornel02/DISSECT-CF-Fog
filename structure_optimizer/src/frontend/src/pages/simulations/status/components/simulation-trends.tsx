@@ -146,11 +146,13 @@ export default function SimulationTrends({
   }, [filteredSimulationGrouped]);
 
   const minimalExecutionTime = useMemo(() => {
-    return validData.reduce(
+    const min = validData.reduce(
       (acc, item) =>
         acc < item.result!.executionTime ? acc : item.result!.executionTime,
       Number.MAX_VALUE,
     );
+
+    return min === Number.MAX_VALUE ? null : min;
   }, [validData]);
 
   const minimalCost = useMemo(() => {
@@ -162,8 +164,7 @@ export default function SimulationTrends({
   }, [validData]);
 
   const minimalEnergyConsumption = useMemo(() => {
-    return validData
-      .reduce(
+    return validData.reduce(
       (acc, item) =>
         acc < item.result!.totalEnergyConsumption
           ? acc
@@ -186,30 +187,30 @@ export default function SimulationTrends({
         item.result?.totalEnergyConsumption === minimalEnergyConsumption,
     )[0];
 
-    const minExecutionTime = Math.log10(
-      minimalExecutionTime === 0 ? 1 : minimalExecutionTime,
-    );
-    const minCost = Math.log10(
-      minimalCost === 0 ? 1 : minimalCost
-    );
+    const minCost = Math.log10(minimalCost === 0 ? 1 : minimalCost);
     const minEnergyConsumption = Math.log10(
-      minimalEnergyConsumption === 0 ? 1 : minimalEnergyConsumption
+      minimalEnergyConsumption === 0 ? 1 : minimalEnergyConsumption,
     );
-
-    console.log('bestExecutionTime', bestExecutionTime);
-    console.log('bestCost', bestCost);
-    console.log('bestEnergyConsumption', bestEnergyConsumption);
 
     return [
-      {
-        metricName: 'Execution time',
-        bestExecutionTime:
-          Math.log10(bestExecutionTime?.result?.executionTime ?? 0) / minExecutionTime,
-        minCost: Math.log10(bestCost?.result?.executionTime ?? 0) / minExecutionTime,
-        minEnergyConsumption:
-          Math.log10(bestEnergyConsumption?.result?.executionTime ?? 0) /
-          minExecutionTime,
-      },
+      minimalExecutionTime
+        ? {
+            metricName: 'Execution time',
+            bestExecutionTime:
+              (bestExecutionTime?.result?.executionTime ?? 0) /
+              minimalExecutionTime,
+            minCost:
+              (bestCost?.result?.executionTime ?? 0) / minimalExecutionTime,
+            minEnergyConsumption:
+              (bestEnergyConsumption?.result?.executionTime ?? 0) /
+              minimalExecutionTime,
+          }
+        : {
+            metricName: 'Execution time',
+            bestExecutionTime: 0,
+            minCost: 0,
+            minEnergyConsumption: 0,
+          },
       {
         metricName: 'Cost',
         bestExecutionTime:
@@ -227,13 +228,12 @@ export default function SimulationTrends({
           Math.log10(bestCost?.result?.totalEnergyConsumption ?? 0) /
           minEnergyConsumption,
         minEnergyConsumption:
-          Math.log10(bestEnergyConsumption?.result?.totalEnergyConsumption ?? 0) /
-          minEnergyConsumption,
+          Math.log10(
+            bestEnergyConsumption?.result?.totalEnergyConsumption ?? 0,
+          ) / minEnergyConsumption,
       },
     ];
   }, [validData, minimalExecutionTime, minimalCost, minimalEnergyConsumption]);
-
-  console.log(minimalExecutionTime, minimalCost, minimalEnergyConsumption);
 
   return (
     <div className="grid grid-cols-2">
@@ -282,7 +282,12 @@ export default function SimulationTrends({
                   <ChartTooltipContent
                     formatter={(val, name) => {
                       if (name === 'minExecutionTime') {
-                        return humanizeDuration(Number(val), { round: true });
+                        return humanizeDuration(
+                          Number(val) * minimalExecutionTime * 1000 * 60,
+                          {
+                            round: true,
+                          },
+                        );
                       }
 
                       return val;
@@ -296,7 +301,7 @@ export default function SimulationTrends({
                 dataKey="minExecutionTime"
                 type="number"
                 tickFormatter={(val) =>
-                  humanizeDuration(Number(val), { round: true })
+                  humanizeDuration(Number(val) * 1000 * 60, { round: true })
                 }
                 width={150}
               />
@@ -327,6 +332,47 @@ export default function SimulationTrends({
               <ChartLegend content={<ChartLegendContent />} />
             </LineChart>
           </ChartContainer>
+        </CardContent>
+      </Card>
+      <Card className="">
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-1 sm:flex-row">
+          <div className="grid flex-1 gap-1 text-center sm:text-left">
+            <CardTitle>Best values</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Card className="p-4">
+                <CardTitle>Minimal execution time</CardTitle>
+                <CardContent>
+                  <div className="font-semibold">
+                    {humanizeDuration(minimalExecutionTime * 1000 * 60, {
+                      round: true,
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <Card className="p-4">
+                <CardTitle>Minimal cost</CardTitle>
+                <CardContent>
+                  <div className="font-semibold">{minimalCost.toFixed(2)}</div>
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <Card className="p-4">
+                <CardTitle>Minimal energy consumption</CardTitle>
+                <CardContent>
+                  <div className="font-semibold">
+                    {minimalEnergyConsumption.toFixed(2)}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </CardContent>
       </Card>
       <Card className="">

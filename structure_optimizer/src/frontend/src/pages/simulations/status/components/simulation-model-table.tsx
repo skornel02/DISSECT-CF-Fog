@@ -40,25 +40,25 @@ export default function SimulationModelTable({
       },
       {
         id: 'executionTime',
-        header: 'ET (ms)',
+        header: 'Time (minutes)',
         sortingFn: 'basic',
         accessorFn: (_) => _.result?.executionTime,
         Cell: ({ cell }) => cell.getValue<string>() ? (
-          <span>{humanizeDuration(Number(cell.getValue<string>()), { round: true })}</span>
+          <span>{humanizeDuration(Number(cell.getValue<string>()) * 1000 * 60, { round: true })}</span>
         ) : (<span>-</span>),
         maxSize: 125,
       },
       {
         id: 'totalCost',
         accessorFn: (_) => _.result?.totalCost.toLocaleString(undefined, { maximumFractionDigits: 3}),
-        header: 'TC',
+        header: 'Cost (€)',
         sortingFn: 'basic',
         maxSize: 125,
       },
       {
         id: 'energyConsumption',
         accessorFn: (_) => _.result?.totalEnergyConsumption.toLocaleString(undefined, { maximumFractionDigits: 3}),
-        header: 'TEC',
+        header: 'Energy (kWh)',
         sortingFn: 'basic',
         maxSize: 150,
       },

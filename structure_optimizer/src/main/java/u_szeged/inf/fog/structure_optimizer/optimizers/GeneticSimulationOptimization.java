@@ -68,7 +68,7 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
         });
     }
 
-    private Function<Genotype<IntegerGene>, Long> evalPidGenes() {
+    private Function<Genotype<IntegerGene>, Double> evalPidGenes() {
         return (gt) -> {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
 
@@ -96,7 +96,7 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
             updateLastUpdated();
 
             if (result.getException() != null) {
-                return Long.MAX_VALUE;
+                return Double.MAX_VALUE;
             }
 
             return result.getExecutionTime();

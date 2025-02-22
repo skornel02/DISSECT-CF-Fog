@@ -216,14 +216,17 @@ public class ScenarioBase {
             long vmTime = 0;
             double cost = 0.0;
             double energyConsumption = 0.0;
+            double price = 0.0;
             for(WorkflowComputingAppliance ca : scheduler.computeArchitecture) {
-                cost += scheduler.instance.calculateCloudCost(ca.vmTime);
+                cost += scheduler.instanceMap.get(ca).calculateCloudCost(ca.vmTime);
                 vmTime += ca.vmTime;
                 energyConsumption += EnergyDataCollector.getEnergyCollector(ca.iaas).energyConsumption;
+                price += scheduler.instanceMap.get(ca).pricePerTick;
             }
             totalCost += cost;
             totalEnergyConsumption += energyConsumption;
-            SimLogger.logRes("Cost (EUR): " + cost + " VM time: " + vmTime + " Price: " + scheduler.instance.pricePerTick);
+
+            SimLogger.logRes("Cost (EUR): " + cost + " VM time: " + vmTime + " Price: " + price);
             SimLogger.logRes("Total energy (kWh): " + energyConsumption / 1000 / 3_600_000);
             SimLogger.logRes("Total time on network (seconds): "
                     + TimeUnit.SECONDS.convert(scheduler.timeOnNetwork, TimeUnit.MILLISECONDS));

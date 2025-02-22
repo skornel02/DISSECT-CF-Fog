@@ -69,7 +69,7 @@ public abstract class BaseSimulationOptimization {
     {
         return simulations.stream()
                 .filter(simulation -> simulation.getResult().isPresent())
-                .min(Comparator.comparingLong(simulation -> simulation.getResult().get().getExecutionTime()));
+                .min(Comparator.comparingDouble(simulation -> simulation.getResult().get().getExecutionTime()));
     }
 
     public Optional<SimulationModel> getBestCostSimulation()

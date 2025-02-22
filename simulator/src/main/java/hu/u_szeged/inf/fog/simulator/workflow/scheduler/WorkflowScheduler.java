@@ -9,6 +9,7 @@ import hu.u_szeged.inf.fog.simulator.provider.Instance;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowExecutor;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowJob;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.TreeMap;
 
 public abstract class WorkflowScheduler {
@@ -23,7 +24,7 @@ public abstract class WorkflowScheduler {
     
     public ArrayList<WorkflowJob> jobs;
 
-    public Instance instance;
+    public HashMap<WorkflowComputingAppliance, Instance> instanceMap;
     
     public long startTime;
     
@@ -45,7 +46,7 @@ public abstract class WorkflowScheduler {
     
     public void addVm(WorkflowComputingAppliance ca) {
         try {
-            ca.workflowVms.add(ca.iaas.requestVM(this.instance.va, this.instance.arc, ca.iaas.repositories.get(0), 1)[0]);
+            ca.workflowVms.add(ca.iaas.requestVM(this.instanceMap.get(ca).va, this.instanceMap.get(ca).arc, ca.iaas.repositories.get(0), 1)[0]);
         } catch (VMManagementException e) {
             e.printStackTrace();
         }

@@ -147,7 +147,7 @@ public class WorkflowSimulation {
         
         for (int i = 0; i < clusterList.size(); i++) {
             Pair<String, ArrayList<WorkflowJob>> jobs = WorkflowJobModel.loadWorkflowXml(workflowFile, "-" + i);
-            executor.submitJobs(new MaxMinScheduler(clusterList.get(i), instance, null, jobs));
+//            executor.submitJobs(new MaxMinScheduler(clusterList.get(i), new HashMap<>() { {} }, null, jobs));
         }
         
         // Logging

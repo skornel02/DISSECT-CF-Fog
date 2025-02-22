@@ -119,7 +119,7 @@ public class WorkflowExecutor {
                 long vmStartTime = Timed.getFireCount();
                 double noi;
                 if (workflowJob.runtime == 0) {
-                    noi = workflowJob.bytesRecieved * workflowScheduler.instance.processingRatio;
+                    noi = workflowJob.bytesRecieved * workflowScheduler.instanceMap.get(ca).processingRatio;
                 } else {
                     noi = 1000 * workflowJob.runtime * vm.getResourceAllocation().allocated.getRequiredCPUs()
                                 * vm.getResourceAllocation().allocated.getRequiredProcessingPower();

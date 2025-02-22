@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adag name="App1" repeat="1">
+	<job id="ID00050" namespace="CyberShake" name="PeakValCalcOkaya" version="1.0" runtime="0.74">
+		<uses file="Seismogram_FFI_2_1_ID00049.grm" link="input" register="true" transfer="true" optional="false" type="data" size="24000"/>
+		<uses file="PeakVals_FFI_2_1_ID00049.bsa" link="output" register="true" transfer="true" optional="false" type="data" size="216"/>
+	</job>
+</adag>

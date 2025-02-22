@@ -17,23 +17,30 @@ import hu.u_szeged.inf.fog.simulator.node.ComputingAppliance;
 import hu.u_szeged.inf.fog.simulator.node.WorkflowComputingAppliance;
 import hu.u_szeged.inf.fog.simulator.provider.Instance;
 import hu.u_szeged.inf.fog.simulator.provider.Provider;
+import hu.u_szeged.inf.fog.simulator.util.EnergyDataCollector;
 import hu.u_szeged.inf.fog.simulator.util.SimLogger;
 import hu.u_szeged.inf.fog.simulator.util.xml.ScientificWorkflowParser;
 import hu.u_szeged.inf.fog.simulator.util.xml.WorkflowJobModel;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowExecutor;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowJob;
+import hu.u_szeged.inf.fog.simulator.workflow.scheduler.IotWorkflowScheduler;
 import hu.u_szeged.inf.fog.simulator.workflow.scheduler.MaxMinScheduler;
 import hu.u_szeged.inf.fog.simulator.workflow.scheduler.WorkflowScheduler;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationResult;
+import u_szeged.inf.fog.structure_optimizer.structures.ComputerSpecification;
 import u_szeged.inf.fog.structure_optimizer.utils.SimpleLogHandler;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
@@ -46,9 +53,9 @@ import java.util.regex.Pattern;
 @Service
 public class SimulationService {
 
-    private static final Pattern TotalCostPattern = Pattern.compile("Total cost: (\\d+\\.\\d+)");
-    private static final Pattern TotalEnergyConsumptionPattern = Pattern.compile("Total energy consumption: (\\d+\\.\\d+)");
-    private static final Pattern ExecutionTime = Pattern.compile("Real execution time (\\d+)ms");
+    private static final Pattern TotalCostPattern = Pattern.compile("Total cost \\(EUR\\): (\\d+\\.\\d+)");
+    private static final Pattern TotalEnergyConsumptionPattern = Pattern.compile("Total energy consumption \\(kWh\\): (\\d+\\.\\d+)");
+    private static final Pattern ExecutionTime = Pattern.compile("Avg execution time \\(min\\): (-?\\d+\\.\\d+)");
     private static final Pattern TaskCompleted = Pattern.compile("Completed: (\\d+)/(\\d+)");
 
     private static final Lock lock = new ReentrantLock();
@@ -74,7 +81,6 @@ public class SimulationService {
         var resultBuiilder = SimulationResult.builder()
                 .id(model.getId());
 
-        HashMap<WorkflowComputingAppliance, Instance> workflowArchitecture;
         var logs = new StringBuffer();
 
         lock.lock();
@@ -94,19 +100,24 @@ public class SimulationService {
             //var nextTempDirectory = Files.createTempDirectory("structure_optimizer-" + model.getId()).toFile();
             //ScenarioBase.resultDirectory = nextTempDirectory.getAbsolutePath();
 
-            workflowArchitecture = getWorkflowArchitecture(model);
-            var workflowArchitectureComputerCount = workflowArchitecture.size();
+            var workflowArchitecture = getWorkflowArchitecture(model);
 
-            if (workflowArchitectureComputerCount == 0) {
+            if (workflowArchitecture.isEmpty()) {
                 throw new Exception("No computers found in the simulation model");
             }
 
-            String workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/CyberShake_100.xml";
-            workflowFile = ScientificWorkflowParser.parseToIotWorkflow(workflowFile);
+            WorkflowComputingAppliance.setDistanceBasedLatency();
 
-            WorkflowJobModel.loadWorkflowXml(workflowFile);
+            for (var appliance : workflowArchitecture.keySet()) {
+                new EnergyDataCollector(appliance.name, appliance.iaas, true);
+            }
 
-            new WorkflowExecutor(new MaxMinScheduler(workflowArchitecture));
+            WorkflowExecutor executor = WorkflowExecutor.getIstance();
+
+            var workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/IoT_CyberShake_100.xml";
+            var jobs = WorkflowJobModel.loadWorkflowXml(workflowFile, "CyberShake_100");
+
+            executor.submitJobs(new MaxMinScheduler(new ArrayList<>(workflowArchitecture.keySet()), workflowArchitecture, null, jobs));
 
             var task = new CompletableFuture<Boolean>();
 
@@ -115,7 +126,7 @@ public class SimulationService {
                 task.complete(true);
             });
 
-            task.get(1, TimeUnit.SECONDS);
+            task.get(1, TimeUnit.MINUTES);
 
             ScenarioBase.logStreamProcessing();
         } catch (TimeoutException e) {
@@ -129,22 +140,14 @@ public class SimulationService {
         } finally {
             Timed.resetTimed();
 
-            WorkflowExecutor.vmTaskLogger.clear();
-            WorkflowExecutor.actuatorReassigns.clear();
-            WorkflowExecutor.jobReassigns.clear();
-
+            WorkflowScheduler.schedulers.clear();
             WorkflowJob.workflowJobs.clear();
-            WorkflowJob.numberOfStartedWorkflowJobs = 0;
+
+            if(WorkflowExecutor.workflowSchedulers != null){
+                WorkflowExecutor.workflowSchedulers.clear();
+            }
 
             ComputingAppliance.allComputingAppliances.clear();
-
-            if (WorkflowScheduler.actuatorArchitecture != null) {
-                WorkflowScheduler.actuatorArchitecture.clear();
-            }
-
-            if (WorkflowScheduler.workflowArchitecture != null) {
-                WorkflowScheduler.workflowArchitecture.clear();
-            }
 
             ResourceAgent.resourceAgents.clear();
 
@@ -176,41 +179,49 @@ public class SimulationService {
 
         var totalCost = -1.0;
         var totalEnergyConsumption = -1.0;
-        var executionTime = -1L;
+        var executionTime = -1D;
         var totalTasks = -1;
         var completedTasks = -1;
 
-        if (!logs.isEmpty()) {
-            var totalCostMatcher = TotalCostPattern.matcher(logs);
+        var compiledLogs = logs.toString();
+
+        if (!compiledLogs.isEmpty()) {
+            var totalCostMatcher = TotalCostPattern.matcher(compiledLogs);
             if (totalCostMatcher.find()) {
                 try {
                     totalCost = Double.parseDouble(totalCostMatcher.group(1));
-                } catch (Exception ignored) {
+                } catch (Exception exception) {
+                    log.warn("Error parsing total cost", exception);
                 }
             }
 
-            var totalEnergyConsumptionMatcher = TotalEnergyConsumptionPattern.matcher(logs);
+            var totalEnergyConsumptionMatcher = TotalEnergyConsumptionPattern.matcher(compiledLogs);
             if (totalEnergyConsumptionMatcher.find()) {
                 try {
                     totalEnergyConsumption = Double.parseDouble(totalEnergyConsumptionMatcher.group(1));
-                } catch (Exception ignored) {
+                } catch (Exception exception) {
+                    log.warn("Error parsing energy consumption", exception);
                 }
             }
 
-            var executionTimeMatcher = ExecutionTime.matcher(logs);
+            var executionTimeMatcher = ExecutionTime.matcher(compiledLogs);
             if (executionTimeMatcher.find()) {
                 try {
-                    executionTime = Long.parseLong(executionTimeMatcher.group(1));
-                } catch (Exception ignored) {
+                    System.out.println(executionTimeMatcher.group(1));
+                    executionTime = Double.parseDouble(executionTimeMatcher.group(1));
+                    System.out.println(executionTime);
+                } catch (Exception exception) {
+                    log.warn("Error parsing execution time", exception);
                 }
             }
 
-            var taskCompletedMatcher = TaskCompleted.matcher(logs);
+            var taskCompletedMatcher = TaskCompleted.matcher(compiledLogs);
             if (taskCompletedMatcher.find()) {
                 try {
                     completedTasks = Integer.parseInt(taskCompletedMatcher.group(1));
                     totalTasks = Integer.parseInt(taskCompletedMatcher.group(2));
-                } catch (Exception ignored) {
+                } catch (Exception exception) {
+                    log.warn("Error parsing task completion", exception);
                 }
             }
         }
@@ -221,7 +232,7 @@ public class SimulationService {
 
         var finishedResult = resultBuiilder
                 .resultDirectory(ScenarioBase.resultDirectory)
-                .logs(logs.toString())
+                .logs(compiledLogs)
                 .totalCost(totalCost)
                 .totalEnergyConsumption(totalEnergyConsumption)
                 .totalTasks(totalTasks)
@@ -255,7 +266,6 @@ public class SimulationService {
                         computerInstance.cores(),
                         computerInstance.processingPerTick(),
                         computerInstance.memory());
-//                AlterableResourceConstraints arc = new AlterableResourceConstraints(2, 0.001, 4294967296L);
 
                 WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(
                         cloudfile,
@@ -267,8 +277,6 @@ public class SimulationService {
 
                 appliances.add(cloud);
                 workflowArchitecture.put(cloud, instance);
-
-                // add all previous as neighbor
             }
 
             simulationMapping.put(computerInstance, appliances);

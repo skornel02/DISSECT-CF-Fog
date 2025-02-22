@@ -8,6 +8,7 @@ import hu.u_szeged.inf.fog.simulator.provider.Instance;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowJob;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.PriorityQueue;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -21,10 +22,10 @@ public class MaxMinScheduler extends WorkflowScheduler {
         }
     }
 
-    public MaxMinScheduler(ArrayList<WorkflowComputingAppliance> computeArchitecture, Instance instance, 
+    public MaxMinScheduler(ArrayList<WorkflowComputingAppliance> computeArchitecture, HashMap<WorkflowComputingAppliance, Instance> instanceMap,
             ArrayList<Actuator> actuatorArchitecture, Pair<String, ArrayList<WorkflowJob>> jobs) {
         this.computeArchitecture = computeArchitecture;
-        this.instance = instance;
+        this.instanceMap = instanceMap;
         this.jobs = jobs.getRight();
         this.appName = jobs.getLeft();
         WorkflowScheduler.schedulers.add(this);
@@ -34,9 +35,9 @@ public class MaxMinScheduler extends WorkflowScheduler {
     public void init() {
         for (WorkflowComputingAppliance ca : this.computeArchitecture) {
             ca.workflowQueue = new PriorityQueue<WorkflowJob>(new MaxMinComperator());
-            ca.iaas.repositories.get(0).registerObject(this.instance.va);
+            ca.iaas.repositories.get(0).registerObject(this.instanceMap.get(ca).va);
             try {
-                ca.workflowVms.add(ca.iaas.requestVM(this.instance.va, this.instance.arc, ca.iaas.repositories.get(0), 1)[0]);
+                ca.workflowVms.add(ca.iaas.requestVM(this.instanceMap.get(ca).va, this.instanceMap.get(ca).arc, ca.iaas.repositories.get(0), 1)[0]);
             } catch (VMManagementException e) {
                 e.printStackTrace();
             }
