@@ -283,7 +283,7 @@ export default function SimulationTrends({
                     formatter={(val, name) => {
                       if (name === 'minExecutionTime') {
                         return humanizeDuration(
-                          Number(val) * minimalExecutionTime * 1000 * 60,
+                          Number(val) * minimalExecutionTime! * 1000 * 60,
                           {
                             round: true,
                           },
@@ -347,7 +347,7 @@ export default function SimulationTrends({
                 <CardTitle>Minimal execution time</CardTitle>
                 <CardContent>
                   <div className="font-semibold">
-                    {humanizeDuration(minimalExecutionTime * 1000 * 60, {
+                    {humanizeDuration(minimalExecutionTime! * 1000 * 60, {
                       round: true,
                     })}
                   </div>

@@ -3,20 +3,14 @@ FROM node:20-slim AS node
 
 LABEL maintainer="stefan.kornel@stud.u-szeged.hu"
 
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
 COPY ./structure_optimizer/src/frontend /app
 
 WORKDIR /app
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --prod --frozen-lockfile
+RUN --mount=type=cache,target=/root/.yarn YARN_CACHE_FOLDER=/root/.yarn yarn install
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
-
-RUN pnpm run build
+RUN yarn run build
 
 FROM openjdk:21-jdk-slim AS java
 

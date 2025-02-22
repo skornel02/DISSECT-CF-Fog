@@ -53,9 +53,9 @@ import java.util.regex.Pattern;
 @Service
 public class SimulationService {
 
-    private static final Pattern TotalCostPattern = Pattern.compile("Total cost \\(EUR\\): (\\d+\\.\\d+)");
-    private static final Pattern TotalEnergyConsumptionPattern = Pattern.compile("Total energy consumption \\(kWh\\): (\\d+\\.\\d+)");
-    private static final Pattern ExecutionTime = Pattern.compile("Avg execution time \\(min\\): (-?\\d+\\.\\d+)");
+    private static final Pattern TotalCostPattern = Pattern.compile("Total cost \\(EUR\\): (\\d+\\.\\d+E?-?\\d*)");
+    private static final Pattern TotalEnergyConsumptionPattern = Pattern.compile("Total energy consumption \\(kWh\\): (\\d+\\.\\d+E?-?\\d*)");
+    private static final Pattern ExecutionTime = Pattern.compile("Avg execution time \\(min\\): (-?\\d+\\.\\d+E?-?\\d*)");
     private static final Pattern TaskCompleted = Pattern.compile("Completed: (\\d+)/(\\d+)");
 
     private static final Lock lock = new ReentrantLock();
