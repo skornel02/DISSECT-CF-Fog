@@ -3,12 +3,12 @@ import {
   SchemaSimulationModel,
   SchemaSimulationStatusDto,
 } from '@/lib/backend';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { client } from '@/lib/backend-client.ts';
 import SimulationModelTable from '@/pages/simulations/status/components/simulation-model-table.tsx';
 import SimulationTrends from './components/simulation-trends';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useEffect } from 'react';
+import { useInterval } from 'usehooks-ts';
 
 export default function SimulationStatusPage() {
   const { id } = useParams();
@@ -21,7 +21,6 @@ export default function SimulationStatusPage() {
   const [lastUpdatedVal, setLastUpdated] = useState<string | undefined>(
     undefined,
   );
-  // const lastUpdated = useThrottledValue(lastUpdatedVal, 500);
 
   const [simulations, setSimulations] = useState<SchemaSimulationModel[]>([]);
 
@@ -68,21 +67,12 @@ export default function SimulationStatusPage() {
     [id],
   );
 
-  // useEffect(() => {
-  //   let interval: NodeJS.Timeout | undefined;
-
-  //   if (!simulation || simulation?.isRunning) {
-  //     // noinspection JSIgnoredPromiseFromCall
-  //     refreshStatus(eTag, lastUpdated);
-
-  //     interval = setInterval(() => {
-  //       // noinspection JSIgnoredPromiseFromCall
-  //       refreshStatus(eTag, lastUpdated);
-  //     }, 2000);
-  //   }
-
-  //   return () => clearInterval(interval);
-  // }, [refreshStatus, lastUpdated]);
+  useInterval(
+    () => {
+      refreshStatus(eTag, lastUpdatedVal);
+    },
+    simulation?.isRunning ? 1000 : null,
+  );
 
   useEffect(() => {
     refreshStatus(eTag, lastUpdatedVal);
@@ -98,16 +88,6 @@ export default function SimulationStatusPage() {
 
   return (
     <div className="flex-grow overflow-clip">
-      {/* <div className="flex justify-between align-center">
-        <div>
-          {simulation.isRunning && (
-            <Button onClick={() => refreshStatus(eTag, undefined)}>
-              Refresh
-            </Button>
-          )}
-        </div>
-      </div> */}
-
       <Tabs defaultValue="stats" className="h-full flex flex-col">
         <TabsList className="w-full flex">
           <TabsTrigger value="stats">Statistics</TabsTrigger>

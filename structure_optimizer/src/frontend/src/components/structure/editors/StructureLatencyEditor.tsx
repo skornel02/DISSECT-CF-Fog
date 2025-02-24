@@ -1,5 +1,5 @@
 import EditableTableCell from '@/components/ui-custom/EditableTableCell';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -144,12 +144,9 @@ export default function StructureLatencyEditor({
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle>Default latency between regions</CardTitle>
-        </CardHeader>
         <CardContent>
           <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label htmlFor="defaultLatency">Latency in ms</Label>
+            <Label htmlFor="defaultLatency">Default Latency in ms</Label>
             <Input
               type="number"
               id="defaultLatency"
@@ -239,6 +236,10 @@ export default function StructureLatencyEditor({
             const to = regions.find((r) => r.name === connection.to);
 
             if (from === undefined || to === undefined) {
+              return null;
+            }
+
+            if (from === to) {
               return null;
             }
 

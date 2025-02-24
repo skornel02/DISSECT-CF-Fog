@@ -290,6 +290,10 @@ export default function SimulationTrends({
                         );
                       }
 
+                      if (name === 'minCost') {
+                        return `${val} €`;
+                      }
+
                       return val;
                     }}
                   />
@@ -319,6 +323,7 @@ export default function SimulationTrends({
                 dataKey="minCost"
                 type="number"
                 orientation="right"
+                tickFormatter={(val) => `${val} €`}
               />
 
               <Line

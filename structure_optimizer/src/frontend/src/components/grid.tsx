@@ -35,7 +35,7 @@ ModuleRegistry.registerModules([
 
 export default function Grid<TData, TLoaderParam>({
   dataReloader,
-  enableQuickFilter = true,
+  enableQuickFilter = false,
   dataloaderParam,
   externalIsLoading,
   excelExport = false,

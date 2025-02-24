@@ -34,7 +34,15 @@ export default function SimulationModelTable({
             field: 'id',
             sortable: true,
             filter: true,
-            hide: false,
+            hide: true,
+          },
+          {
+            headerName: 'Generation',
+            field: 'generation',
+            sortable: true,
+            filter: true,
+            hide: !hasGenerations,
+            enableRowGroup: true,
           },
           {
             headerName: 'Status',
@@ -77,14 +85,6 @@ export default function SimulationModelTable({
             filter: true,
             hide: false,
             valueFormatter: ({ value }) => value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : 'N/A',
-          },
-          {
-            headerName: 'Generation',
-            field: 'generation',
-            sortable: true,
-            filter: true,
-            hide: !hasGenerations,
-            enableRowGroup: true,
           },
           {
             headerName: 'Actions',
