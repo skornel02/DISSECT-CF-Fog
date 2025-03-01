@@ -208,7 +208,7 @@ public class SimulationService {
             if (executionTimeMatcher.find()) {
                 try {
                     System.out.println(executionTimeMatcher.group(1));
-                    executionTime = Double.parseDouble(executionTimeMatcher.group(1));
+                    executionTime = Double.parseDouble(executionTimeMatcher.group(1)) * 60 * 1000;
                     System.out.println(executionTime);
                 } catch (Exception exception) {
                     log.warn("Error parsing execution time", exception);

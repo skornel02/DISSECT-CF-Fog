@@ -127,6 +127,8 @@ export default function SimulationTrends({
           ),
         );
 
+        const minFitness = Math.min(...value.map((item) => item.fitness!));
+
         return {
           generation: parseInt(key, 10),
           minExecutionTime:
@@ -138,6 +140,7 @@ export default function SimulationTrends({
             minEnergyConsumption === Number.MAX_VALUE
               ? undefined
               : minEnergyConsumption,
+          minFitness: minFitness,
         };
       },
     );
@@ -283,7 +286,7 @@ export default function SimulationTrends({
                     formatter={(val, name) => {
                       if (name === 'minExecutionTime') {
                         return humanizeDuration(
-                          Number(val) * minimalExecutionTime! * 1000 * 60,
+                          Number(val) * minimalExecutionTime!,
                           {
                             round: true,
                           },
@@ -305,7 +308,7 @@ export default function SimulationTrends({
                 dataKey="minExecutionTime"
                 type="number"
                 tickFormatter={(val) =>
-                  humanizeDuration(Number(val) * 1000 * 60, { round: true })
+                  humanizeDuration(Number(val), { round: true })
                 }
                 width={150}
               />
@@ -352,7 +355,7 @@ export default function SimulationTrends({
                 <CardTitle>Minimal execution time</CardTitle>
                 <CardContent>
                   <div className="font-semibold">
-                    {humanizeDuration(minimalExecutionTime! * 1000 * 60, {
+                    {humanizeDuration(minimalExecutionTime!, {
                       round: true,
                     })}
                   </div>

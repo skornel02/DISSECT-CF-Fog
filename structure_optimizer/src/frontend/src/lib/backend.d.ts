@@ -95,6 +95,26 @@ export interface components {
         SimulationStartedDto: {
             guid: string;
         };
+        GeneticSimulationRequest: {
+            structure?: components["schemas"]["SimulationStructure"];
+            goalSettings?: components["schemas"]["GoalSettings"];
+        };
+        GoalSettings: {
+            useRandom?: boolean;
+            minimizingCost?: boolean;
+            /** Format: int32 */
+            populationSize?: number;
+            /** Format: int32 */
+            maximumGenerations?: number;
+            /** Format: double */
+            timeWeight?: number;
+            /** Format: double */
+            priceWeight?: number;
+            /** Format: double */
+            energyWeight?: number;
+            /** Format: double */
+            maximumPrice?: number;
+        };
         SimulationComputerInstance: {
             /** Format: int32 */
             count?: number;
@@ -128,6 +148,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             finishedAt?: string;
+            /** Format: double */
+            fitness?: number;
+            bestPhenotype?: boolean;
         };
         SimulationResult: {
             id: string;
@@ -137,20 +160,21 @@ export interface components {
             totalCost: number;
             /** Format: double */
             totalEnergyConsumption: number;
-            /** Format: int64 */
+            /** Format: double */
             executionTime: number;
             /** Format: int32 */
             totalTasks: number;
             /** Format: int32 */
             completedTasks: number;
-            errorStackTrace?: string;
             errorMessage?: string;
+            errorStackTrace?: string;
         };
         SimulationStatusDto: {
             id: string;
             type: string;
             isRunning: boolean;
             simulations: components["schemas"]["SimulationModel"][];
+            goalSettings?: components["schemas"]["GoalSettings"];
         };
     };
     responses: never;
@@ -165,6 +189,8 @@ export type SchemaRegionConnection = components['schemas']['RegionConnection'];
 export type SchemaRegionSpecification = components['schemas']['RegionSpecification'];
 export type SchemaSimulationStructure = components['schemas']['SimulationStructure'];
 export type SchemaSimulationStartedDto = components['schemas']['SimulationStartedDto'];
+export type SchemaGeneticSimulationRequest = components['schemas']['GeneticSimulationRequest'];
+export type SchemaGoalSettings = components['schemas']['GoalSettings'];
 export type SchemaSimulationComputerInstance = components['schemas']['SimulationComputerInstance'];
 export type SchemaSimulationModel = components['schemas']['SimulationModel'];
 export type SchemaSimulationResult = components['schemas']['SimulationResult'];
@@ -204,7 +230,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SimulationStructure"];
+                "application/json": components["schemas"]["GeneticSimulationRequest"];
             };
         };
         responses: {

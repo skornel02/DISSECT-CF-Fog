@@ -17,8 +17,10 @@ import moment from 'moment';
 
 export default function SimulationModelTable({
   data,
+  running,
 }: {
   data: SchemaSimulationModel[];
+  running: boolean;
 }) {
   const hasGenerations = useMemo(() => {
     return data.some((item) => item.generation !== -1);
@@ -43,6 +45,7 @@ export default function SimulationModelTable({
             filter: true,
             hide: !hasGenerations,
             enableRowGroup: true,
+            maxWidth: 60,
           },
           {
             headerName: 'Status',
@@ -50,6 +53,7 @@ export default function SimulationModelTable({
             sortable: true,
             filter: true,
             hide: false,
+            maxWidth: 110
           },
           {
             headerName: 'Time',
@@ -58,7 +62,7 @@ export default function SimulationModelTable({
             filter: true,
             hide: false,
             valueFormatter: ({ value }) =>
-              value ? humanizeDuration(value * 60 * 1000) : 'N/A',
+              value ? humanizeDuration(value, {round: false }) : 'N/A',
           },
           {
             headerName: 'Cost',
@@ -68,6 +72,7 @@ export default function SimulationModelTable({
             hide: false,
             valueFormatter: ({ value }) =>
               value ? `${value.toFixed(2)} €` : 'N/A',
+            maxWidth: 110
           },
           {
             headerName: 'Energy',
@@ -77,14 +82,20 @@ export default function SimulationModelTable({
             hide: false,
             valueFormatter: ({ value }) =>
               value ? `${value.toFixed(2)} kWh` : 'N/A',
+            maxWidth: 110
           },
           {
-            headerName: 'Finished At',
-            field: 'finishedAt',
+            headerName: 'Fitness',
+            field: 'fitness',
             sortable: true,
             filter: true,
-            hide: false,
-            valueFormatter: ({ value }) => value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : 'N/A',
+            hide: data.every((item) => item.fitness === 0),
+            maxWidth: 160
+          },
+          {
+            headerName: 'Best',
+            field: 'bestPhenotype',
+            maxWidth: 60,
           },
           {
             headerName: 'Actions',

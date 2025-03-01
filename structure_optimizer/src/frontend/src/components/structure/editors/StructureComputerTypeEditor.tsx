@@ -88,7 +88,7 @@ export default function StructureComputerTypeEditor({
             field: 'pricePerTick',
             editable: true,
             type: 'number',
-            valueFormatter: ({ value }) => `${value?.toFixed(2)} €`,
+            valueFormatter: ({ value }) => `${value?.toString()} €`,
           },
           {
             headerName: 'Actions',

@@ -30,6 +30,10 @@ public class SimulationModel {
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ")
     private OffsetDateTime finishedAt;
 
+    private double fitness;
+
+    private boolean bestPhenotype;
+
     public Optional<SimulationResult> getResult() {
         return Optional.ofNullable(result);
     }

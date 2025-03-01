@@ -3,9 +3,11 @@ package u_szeged.inf.fog.structure_optimizer.controllers;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import u_szeged.inf.fog.structure_optimizer.dtos.GeneticSimulationRequest;
 import u_szeged.inf.fog.structure_optimizer.dtos.SimulationStartedDto;
 import u_szeged.inf.fog.structure_optimizer.dtos.SimulationStatusDto;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
+import u_szeged.inf.fog.structure_optimizer.optimizers.GeneticSimulationOptimization;
 import u_szeged.inf.fog.structure_optimizer.services.OptimizationService;
 import u_szeged.inf.fog.structure_optimizer.structures.SimulationStructure;
 
@@ -52,7 +54,10 @@ public class SimulationController {
                 simulation.getId(),
                 simulation.getSimulationType(),
                 !simulation.isDone(),
-                simulations
+                simulations,
+                simulation instanceof GeneticSimulationOptimization geneticSim
+                        ? geneticSim.getGoalSettings()
+                        : null
         );
 
         return ResponseEntity.ok()
@@ -69,8 +74,8 @@ public class SimulationController {
     }
 
     @PostMapping("/api/simulations/genetic")
-    public ResponseEntity<SimulationStartedDto> runGeneticSimulation(@RequestBody SimulationStructure structure) {
-        var started = optimizationService.startGeneticOptimization(structure);
+    public ResponseEntity<SimulationStartedDto> runGeneticSimulation(@RequestBody GeneticSimulationRequest request) {
+        var started = optimizationService.startGeneticOptimization(request.getStructure(), request.getGoalSettings());
 
         return ResponseEntity.ok(started);
     }

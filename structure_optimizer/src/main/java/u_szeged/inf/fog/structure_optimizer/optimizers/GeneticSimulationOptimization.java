@@ -3,7 +3,10 @@ package u_szeged.inf.fog.structure_optimizer.optimizers;
 import io.jenetics.*;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
+import io.jenetics.engine.Limits;
+import lombok.Getter;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
+import u_szeged.inf.fog.structure_optimizer.models.GoalSettings;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
@@ -25,21 +28,26 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
     private long currentGeneration;
     private boolean isFinished = false;
 
+    @Getter
+    private final GoalSettings goalSettings;
     private final Thread worker;
 
     public GeneticSimulationOptimization(
             SimulationService service,
             String id,
+            GoalSettings goalSettings,
             List<SimulationComputerInstance> computerInstances) {
         super(service, id, computerInstances);
 
         contextClassLoader = this.getClass().getClassLoader();
 
+        this.goalSettings = goalSettings;
+
         worker = new Thread(() -> {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
 
             var chromosomes = new ArrayList<IntegerChromosome>();
-            for (var computer : computerInstances) {
+            for (var ignored : computerInstances) {
                 chromosomes.add(IntegerChromosome.of(0, MAX_COMPUTERS));
             }
 
@@ -47,22 +55,37 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
 
             var engine = Engine
                     .builder(evalPidGenes(), gtf)
-                    .minimizing()
+                    .optimize(goalSettings.isMinimizingCost() ? Optimize.MINIMUM : Optimize.MAXIMUM)
                     .alterers(
                             new Mutator<>(0.1),
                             new MeanAlterer<>(0.1),
                             new UniformCrossover<>(0.1, 0.1)
                     )
-                    .populationSize(20)
+                    .populationSize(goalSettings.getPopulationSize())
+                    .selector(goalSettings.isUseRandom()
+                            ? new MonteCarloSelector<>()
+                            : new TournamentSelector<>(3))
                     .build();
 
             var result = engine.stream()
-                    .limit(100)
+                    //.limit(Limits.byFitnessConvergence(10, 25, 0.01))
+                    .limit(goalSettings.getMaximumGenerations())
                     .peek(er -> {
                         currentGeneration = er.generation();
-                        System.out.println(er.generation());
                     })
-                    .collect(EvolutionResult.toBestGenotype());
+                    .collect(EvolutionResult.toBestPhenotype());
+
+            simulations.forEach(simulation -> {
+                var instances = simulation.getInstances();
+
+                for (int i = 0; i < instances.size(); i++) {
+                    if (instances.get(i).count() != result.genotype().get(i).gene().intValue()) {
+                        return;
+                    }
+                }
+
+                simulation.setBestPhenotype(true);
+            });
 
             isFinished = true;
         });
@@ -96,10 +119,27 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
             updateLastUpdated();
 
             if (result.getException() != null) {
-                return Double.MAX_VALUE;
+                simulation.setFitness(-1);
+                return goalSettings.isMinimizingCost() ? Double.MAX_VALUE : Double.MIN_VALUE;
             }
 
-            return result.getExecutionTime();
+            var execTime = result.getExecutionTime();
+            var price = result.getTotalCost();
+            var energy = result.getTotalEnergyConsumption();
+
+            if (goalSettings.getMaximumPrice() != null && price > goalSettings.getMaximumPrice()) {
+                price = goalSettings.isMinimizingCost()
+                    ? price * 100
+                    : price / 100;
+            }
+
+            var fitness = (execTime / 60 / 1000) * goalSettings.getTimeWeight()
+                    + price * goalSettings.getPriceWeight()
+                    + energy * goalSettings.getEnergyWeight();
+
+            simulation.setFitness(fitness);
+
+            return fitness;
         };
     }
 

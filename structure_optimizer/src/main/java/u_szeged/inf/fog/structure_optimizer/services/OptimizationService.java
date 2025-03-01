@@ -3,6 +3,7 @@ package u_szeged.inf.fog.structure_optimizer.services;
 import lombok.Getter;
 import org.springframework.stereotype.Service;
 import u_szeged.inf.fog.structure_optimizer.dtos.SimulationStartedDto;
+import u_szeged.inf.fog.structure_optimizer.models.GoalSettings;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.optimizers.BaseSimulationOptimization;
 import u_szeged.inf.fog.structure_optimizer.optimizers.GeneticSimulationOptimization;
@@ -42,12 +43,12 @@ public class OptimizationService {
         return new SimulationStartedDto(id);
     }
 
-    public SimulationStartedDto startGeneticOptimization(SimulationStructure structure) {
+    public SimulationStartedDto startGeneticOptimization(SimulationStructure structure, GoalSettings goalSettings) {
         var id = UUID.randomUUID().toString();
 
         var computerInstances = createComputerInstanceListFromStructure(structure);
 
-        var randomOptimization = new GeneticSimulationOptimization(simulationService, id, computerInstances);
+        var randomOptimization = new GeneticSimulationOptimization(simulationService, id, goalSettings, computerInstances);
 
         simulations.put(id, randomOptimization);
 

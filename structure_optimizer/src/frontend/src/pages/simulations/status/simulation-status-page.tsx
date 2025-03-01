@@ -17,7 +17,7 @@ export default function SimulationStatusPage() {
     SchemaSimulationStatusDto | undefined | null
   >(undefined);
 
-  const [eTag, setETag] = useState<string | null>(null);
+  const [eTag, setETag] = useState<string | undefined>(undefined);
   const [lastUpdatedVal, setLastUpdated] = useState<string | undefined>(
     undefined,
   );
@@ -25,7 +25,7 @@ export default function SimulationStatusPage() {
   const [simulations, setSimulations] = useState<SchemaSimulationModel[]>([]);
 
   const refreshStatus = useCallback(
-    async (eTag: string | null, lastUpdated: string | undefined) => {
+    async (eTag?: string | undefined, lastUpdated?: string | undefined) => {
       if (!id) {
         return;
       }
@@ -51,7 +51,7 @@ export default function SimulationStatusPage() {
         setSimulation(null);
       } else {
         setSimulation(data);
-        setETag(response.headers.get('Etag'));
+        setETag(response.headers.get('Etag') ?? undefined);
 
         const nextLastUpdated = response.headers.get('X-Last-Updated');
         if (nextLastUpdated && nextLastUpdated !== lastUpdated) {
@@ -59,7 +59,7 @@ export default function SimulationStatusPage() {
         }
 
         setSimulations((prev) => [
-          ...prev.filter((item) => item.status === 'Finished'),
+          ...prev.filter((item) => !data.simulations.some((s) => s.id === item.id)),
           ...data.simulations,
         ]);
       }
@@ -75,19 +75,22 @@ export default function SimulationStatusPage() {
   );
 
   useEffect(() => {
-    refreshStatus(eTag, lastUpdatedVal);
-  }, []);
-
-  if (simulation === undefined) {
-    return <div>Loading...</div>;
-  }
+    refreshStatus();
+  }, [refreshStatus, simulation?.isRunning]);
 
   if (simulation === null) {
     return <div>Simulation not found</div>;
   }
 
+  console.log(simulation);
+
   return (
     <div className="flex-grow overflow-clip">
+      <div className="fixed top-0 left-0 right-0 h-1">
+        {simulation?.isRunning && (
+          <div className="h-1 bg-blue-500 animate-pulse"></div>
+        )}
+      </div>
       <Tabs defaultValue="stats" className="h-full flex flex-col">
         <TabsList className="w-full flex">
           <TabsTrigger value="stats">Statistics</TabsTrigger>
@@ -97,7 +100,7 @@ export default function SimulationStatusPage() {
           <SimulationTrends data={simulations} />
         </TabsContent>
         <TabsContent value="data" className="flex-grow">
-          <SimulationModelTable data={simulations} />
+          <SimulationModelTable data={simulations} running={simulation?.isRunning ?? true} />
         </TabsContent>
       </Tabs>
     </div>
