@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import humanizeDuration from 'humanize-duration';
 import Grid from '@/components/grid';
 import { useMemo } from 'react';
-import moment from 'moment';
 
 export default function SimulationModelTable({
   data,
@@ -96,6 +95,7 @@ export default function SimulationModelTable({
             headerName: 'Best',
             field: 'bestPhenotype',
             maxWidth: 60,
+            hide: running,
           },
           {
             headerName: 'Actions',

@@ -4,12 +4,6 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
-  LineChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -34,12 +28,10 @@ import {
   SchemaGoalSettings,
   SchemaSimulationComputerInstance,
   SchemaSimulationModel,
-  SchemaSimulationStructure,
 } from '@/lib/backend';
 import { useMemo } from 'react';
 import humanizeDuration from 'humanize-duration';
 import { Leaf, ReceiptEuro, Star, Timer } from 'lucide-react';
-import { exec } from 'child_process';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MapContainer, Marker, TileLayer, Tooltip } from 'react-leaflet';
@@ -435,8 +427,8 @@ export default function SimulationTrends({
                       opacity={1}
                       permanent>
                       <div>{region}:</div>
-                      {instances.map((instance) => (
-                        <div key={instance.id}>
+                      {instances.map((instance, i) => (
+                        <div key={`instance-${i}`}>
                           {instance.computerType} ({instance.count})
                         </div>
                       ))}
