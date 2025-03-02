@@ -68,7 +68,7 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
                     .build();
 
             var result = engine.stream()
-                    //.limit(Limits.byFitnessConvergence(10, 25, 0.01))
+                    .limit(Limits.byFitnessConvergence(10, 25, 0.01))
                     .limit(goalSettings.getMaximumGenerations())
                     .peek(er -> {
                         currentGeneration = er.generation();
@@ -133,7 +133,7 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
                     : price / 100;
             }
 
-            var fitness = (execTime / 60 / 1000) * goalSettings.getTimeWeight()
+            var fitness = execTime * goalSettings.getTimeWeight()
                     + price * goalSettings.getPriceWeight()
                     + energy * goalSettings.getEnergyWeight();
 

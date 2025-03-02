@@ -97,7 +97,7 @@ export default function SimulationStatusPage() {
           <TabsTrigger value="data">Simulation data</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="flex-grow">
-          <SimulationTrends data={simulations} />
+          <SimulationTrends data={simulations} goalSettings={simulation?.goalSettings} />
         </TabsContent>
         <TabsContent value="data" className="flex-grow">
           <SimulationModelTable data={simulations} running={simulation?.isRunning ?? true} />

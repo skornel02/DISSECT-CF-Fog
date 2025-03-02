@@ -13,7 +13,7 @@ export default function GeneticSimulationPage() {
 
   const [structure, setStructure] = useState<SchemaSimulationStructure>({});
   const [goalSettings, setGoalSettings] = useState<SchemaGoalSettings>({
-    timeWeight: 1,
+    timeWeight: 0.0001,
     energyWeight: 0,
     priceWeight: 0,
     minimizingCost: true,

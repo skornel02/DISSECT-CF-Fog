@@ -108,6 +108,7 @@ const ChartTooltipContent = React.forwardRef<
       indicator?: 'line' | 'dot' | 'dashed';
       nameKey?: string;
       labelKey?: string;
+      onRender?: (item: unknown) => void;
     }
 >(
   (
@@ -125,6 +126,7 @@ const ChartTooltipContent = React.forwardRef<
       color,
       nameKey,
       labelKey,
+      onRender,
     },
     ref,
   ) => {
@@ -165,6 +167,10 @@ const ChartTooltipContent = React.forwardRef<
       config,
       labelKey,
     ]);
+
+    React.useEffect(() => {
+      onRender?.(payload);
+    }, [payload, onRender]);
 
     if (!active || !payload?.length) {
       return null;

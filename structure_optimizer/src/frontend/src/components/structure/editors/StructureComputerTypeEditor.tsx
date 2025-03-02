@@ -50,7 +50,7 @@ export default function StructureComputerTypeEditor({
             type: 'number',
           },
           {
-            headerName: 'IPS per core',
+            headerName: 'Instructions per tick',
             field: 'processingPerTick',
             editable: true,
             type: 'number',
