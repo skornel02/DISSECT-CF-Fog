@@ -19,28 +19,24 @@ import hu.u_szeged.inf.fog.simulator.provider.Instance;
 import hu.u_szeged.inf.fog.simulator.provider.Provider;
 import hu.u_szeged.inf.fog.simulator.util.EnergyDataCollector;
 import hu.u_szeged.inf.fog.simulator.util.SimLogger;
-import hu.u_szeged.inf.fog.simulator.util.xml.ScientificWorkflowParser;
 import hu.u_szeged.inf.fog.simulator.util.xml.WorkflowJobModel;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowExecutor;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowJob;
-import hu.u_szeged.inf.fog.simulator.workflow.scheduler.IotWorkflowScheduler;
 import hu.u_szeged.inf.fog.simulator.workflow.scheduler.MaxMinScheduler;
 import hu.u_szeged.inf.fog.simulator.workflow.scheduler.WorkflowScheduler;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
+import u_szeged.inf.fog.structure_optimizer.models.SimulationCacheKey;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationResult;
-import u_szeged.inf.fog.structure_optimizer.structures.ComputerSpecification;
 import u_szeged.inf.fog.structure_optimizer.utils.SimpleLogHandler;
 
+import javax.xml.bind.JAXBException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
@@ -62,21 +58,24 @@ public class SimulationService {
 
     private static final ExecutorService executorService = Executors.newFixedThreadPool(1);
 
-    private static final LoadingCache<List<SimulationComputerInstance>, SimulationResult> simulationCache = Caffeine.newBuilder()
-            .maximumSize(10_000)
+    private static final LoadingCache<SimulationCacheKey, SimulationResult> simulationCache = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofHours(1))
+            .weigher((SimulationCacheKey key, SimulationResult value) ->key.structure().size())
+            .maximumWeight(10_000)
             .build(a -> null);
+
 
     public SimulationService() {
     }
 
 
-    public SimulationResult runSimulation(SimulationModel model) {
-        var cachedResult = simulationCache.getIfPresent(model.getInstances());
-        if (cachedResult != null) {
-            log.info("Simulation result found in cache!");
-            return cachedResult;
-        }
+    public SimulationResult runSimulation(SimulationModel model, int tasksMultiplier) {
+        var cacheKey = new SimulationCacheKey(model.getInstances(), tasksMultiplier);
+        var cachedResult = simulationCache.getIfPresent(cacheKey);
+//        if (cachedResult != null) {
+//            log.info("Simulation result found in cache!");
+//            return cachedResult;
+//        }
 
         var resultBuiilder = SimulationResult.builder()
                 .id(model.getId());
@@ -114,8 +113,17 @@ public class SimulationService {
 
             WorkflowExecutor executor = WorkflowExecutor.getIstance();
 
+
             var workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/IoT_CyberShake_100.xml";
-            var jobs = WorkflowJobModel.loadWorkflowXml(workflowFile, "CyberShake_100");
+            var jobs = WorkflowJobModel.loadWorkflowXml(workflowFile, "Simulation");
+
+            var nextTasks = new ArrayList<WorkflowJob>();
+
+            for (var i = 0; i < tasksMultiplier; i++) {
+                nextTasks.addAll(jobs.getValue());
+            }
+
+            jobs = Pair.ofNonNull("Simulation", nextTasks);
 
             executor.submitJobs(new MaxMinScheduler(new ArrayList<>(workflowArchitecture.keySet()), workflowArchitecture, null, jobs));
 
@@ -242,7 +250,7 @@ public class SimulationService {
 
         lock.unlock();
 
-        simulationCache.put(model.getInstances(), finishedResult);
+//        simulationCache.put(cacheKey, finishedResult);
 
         return finishedResult;
     }
@@ -255,31 +263,34 @@ public class SimulationService {
         String cloudfile = ScenarioBase.resourcePath + "LPDS_magic.xml";
 
         for (var computerInstance : model.getInstances()) {
-            var counter = 0;
             var appliances = new ArrayList<WorkflowComputingAppliance>();
 
-            for (var i = 0; i < computerInstance.count(); i++) {
-                var id = computerInstance.region() + "-" + computerInstance.computerType() + "-" + ++counter;
-
-                VirtualAppliance va = new VirtualAppliance(id + "-va", 100, 0, false, 1073741824L);
-                AlterableResourceConstraints arc = new AlterableResourceConstraints(
-                        computerInstance.cores(),
-                        computerInstance.processingPerTick(),
-                        computerInstance.memory());
-
-                WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(
-                        cloudfile,
-                        id + "-cloud",
-                        new GeoLocation(computerInstance.latitude(), computerInstance.longitude()),
-                        1000);
-
-                Instance instance = new Instance(id + "-instance", va, arc, computerInstance.pricePerTick(), 1);
-
-                appliances.add(cloud);
-                workflowArchitecture.put(cloud, instance);
+            simulationMapping.put(computerInstance, appliances);
+            if (computerInstance.count() == 0) {
+                continue;
             }
 
-            simulationMapping.put(computerInstance, appliances);
+            var id = computerInstance.region() + "-" + computerInstance.computerType();
+
+            VirtualAppliance va = new VirtualAppliance(id + "-va", 100, 0, false, 1073741824L);
+            AlterableResourceConstraints arc = new AlterableResourceConstraints(
+                    computerInstance.cores(),
+                    computerInstance.processingPerTick(),
+                    computerInstance.memory());
+
+            WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(
+                    cloudfile,
+                    id + "-cloud",
+                    new GeoLocation(computerInstance.latitude(), computerInstance.longitude()),
+                    1000);
+
+            cloud.setFixedVmCount(computerInstance.count());
+
+            Instance instance = new Instance(id + "-instance", va, arc, computerInstance.pricePerTick(), 1);
+
+            appliances.add(cloud);
+            workflowArchitecture.put(cloud, instance);
+
         }
 
         for (var computerInstance : model.getInstances()) {

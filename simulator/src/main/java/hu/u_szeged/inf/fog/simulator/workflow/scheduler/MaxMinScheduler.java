@@ -37,7 +37,8 @@ public class MaxMinScheduler extends WorkflowScheduler {
             ca.workflowQueue = new PriorityQueue<WorkflowJob>(new MaxMinComperator());
             ca.iaas.repositories.get(0).registerObject(this.instanceMap.get(ca).va);
             try {
-                ca.workflowVms.add(ca.iaas.requestVM(this.instanceMap.get(ca).va, this.instanceMap.get(ca).arc, ca.iaas.repositories.get(0), 1)[0]);
+                var count = ca.getFixedVmCount() == null ? 1 : ca.getFixedVmCount();
+                ca.workflowVms.add(ca.iaas.requestVM(this.instanceMap.get(ca).va, this.instanceMap.get(ca).arc, ca.iaas.repositories.get(0), count)[0]);
             } catch (VMManagementException e) {
                 e.printStackTrace();
             }
@@ -71,10 +72,14 @@ public class MaxMinScheduler extends WorkflowScheduler {
                 jobCount += vm.underProcessing.size();
                 vmCount++;
             }
-            if (jobCount / vmCount > 1) {
-                this.addVm(wca);
-            } else if (countRunningVms(wca) > 1) {
-                this.shutdownVm(wca);
+
+            if (wca.getFixedVmCount() == null)
+            {
+                if (jobCount / vmCount > 1) {
+                    this.addVm(wca);
+                } else if (countRunningVms(wca) > 1) {
+                    this.shutdownVm(wca);
+                }
             }
         }
     }

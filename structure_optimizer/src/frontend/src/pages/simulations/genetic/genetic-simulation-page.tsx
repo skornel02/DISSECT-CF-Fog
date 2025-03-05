@@ -13,6 +13,7 @@ export default function GeneticSimulationPage() {
 
   const [structure, setStructure] = useState<SchemaSimulationStructure>({});
   const [goalSettings, setGoalSettings] = useState<SchemaGoalSettings>({
+    tasksMultiplier: 1,
     timeWeight: 0.0001,
     energyWeight: 0,
     priceWeight: 0,
@@ -65,7 +66,7 @@ export default function GeneticSimulationPage() {
     <div className="p-4">
       <h1 className="mb-2 text-xl">Random Simulation</h1>
       <StructureEditor handleChange={setStructure} />
-      <div className="grid grid-cols-4 grid-flow-row mt-2">
+      <div className="grid grid-cols-3 grid-flow-row mt-2">
         <div className="grid grid-cols-2 gap-2 items-center min-w-[150px]">
           <Label htmlFor="timeWeight">Time weight</Label>
           <Input
@@ -177,7 +178,23 @@ export default function GeneticSimulationPage() {
             }
           />
         </div>
-        <Button onClick={() => startSimulation(structure, goalSettings)}>
+        <div className="grid grid-cols-2 gap-2 items-center">
+          <Label>Task multiplier</Label>
+          <Input
+            type="number"
+            value={goalSettings.tasksMultiplier}
+            min={1}
+            max={1000}
+            step={1}
+            onChange={(e) =>
+              setGoalSettings({
+                ...goalSettings,
+                tasksMultiplier: parseInt(e.target.value),
+              })
+            }
+          />
+        </div>
+        <Button className='col-span-3' onClick={() => startSimulation(structure, goalSettings)}>
           Start Simulation
         </Button>
       </div>

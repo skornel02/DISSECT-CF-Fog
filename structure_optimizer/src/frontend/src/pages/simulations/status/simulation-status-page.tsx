@@ -82,8 +82,6 @@ export default function SimulationStatusPage() {
     return <div>Simulation not found</div>;
   }
 
-  console.log(simulation);
-
   return (
     <div className="flex-grow overflow-clip">
       <div className="fixed top-0 left-0 right-0 h-1">

@@ -35,7 +35,7 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
 
             for (var simulation : simulations) {
-                var result = service.runSimulation(simulation);
+                var result = service.runSimulation(simulation, 1);
                 simulation.setResult(result);
                 simulation.setStatus(SimulationStatus.Finished);
                 simulation.setFinishedAt(OffsetDateTime.now());

@@ -10,6 +10,8 @@ public class GoalSettings {
     private int populationSize = 20;
     private int maximumGenerations = 100;
 
+    private int tasksMultiplier = 1;
+
     private double timeWeight = 1;
     private double priceWeight = 0;
     private double energyWeight = 0;

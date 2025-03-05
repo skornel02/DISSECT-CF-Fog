@@ -175,6 +175,18 @@ export default function SimulationTrends({
           price = price * goalSettings.priceWeight;
         }
 
+        if (
+          valueWithBestFitness?.pricePenalty &&
+          price &&
+          valueWithBestFitness.pricePenalty > 1
+        ) {
+          if (goalSettings?.minimizingCost) {
+            price = price * valueWithBestFitness.pricePenalty;
+          } else {
+            price = price / valueWithBestFitness.pricePenalty;
+          }
+        }
+
         if (goalSettings?.timeWeight && executionTime) {
           executionTime = executionTime * goalSettings.timeWeight;
         }
@@ -500,6 +512,22 @@ export default function SimulationTrends({
                       ? `${selectedBestSpecimen.result.totalEnergyConsumption.toPrecision(6)} kWh`
                       : 'N/A'}
                   </span>
+                </div>
+              </div>
+              {selectedBestSpecimen.pricePenalty && (
+                <div className="grid grid-cols-3 gap-4 items-center">
+                  <Label>Price penalty</Label>
+                  <div className="col-span-2 flex items-center gap-2">
+                    <Leaf color="hsl(var(--chart-4))" />
+                    <span>{selectedBestSpecimen.pricePenalty}</span>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-4 items-center">
+                <Label>Total tasks</Label>
+                <div className="col-span-2 flex items-center gap-2">
+                  <Leaf color="hsl(var(--chart-4))" />
+                  <span>{selectedBestSpecimen.result?.totalTasks}</span>
                 </div>
               </div>
             </>

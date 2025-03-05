@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import humanizeDuration from 'humanize-duration';
 import Grid from '@/components/grid';
 import { useMemo } from 'react';
+import { ColDef } from 'ag-grid-community';
 
 export default function SimulationModelTable({
   data,
@@ -24,6 +25,18 @@ export default function SimulationModelTable({
   const hasGenerations = useMemo(() => {
     return data.some((item) => item.generation !== -1);
   }, [data]);
+
+  const additionalColumnDefs: ColDef[] = useMemo(() => data[0].instances 
+    ? data[0].instances?.map((instance, index) => ({
+      headerName: `${instance.computerType} - ${instance.region}`,
+      field: `${instance.computerType} - ${instance.region}`,
+      valueGetter: (params) => params.data.instances[index].count,
+      sortable: true,
+      filter: true,
+    }))
+    : [], [data]);
+
+  console.log(additionalColumnDefs);
 
   return (
     <div className='h-full'>
@@ -152,6 +165,7 @@ export default function SimulationModelTable({
               );
             },
           },
+          ...additionalColumnDefs,
         ]}
         rowGroupPanelShow='always'
       />

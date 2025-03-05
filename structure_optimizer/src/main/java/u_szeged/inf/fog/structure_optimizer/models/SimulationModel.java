@@ -31,6 +31,7 @@ public class SimulationModel {
     private OffsetDateTime finishedAt;
 
     private double fitness;
+    private Integer pricePenalty;
 
     private boolean bestPhenotype;
 

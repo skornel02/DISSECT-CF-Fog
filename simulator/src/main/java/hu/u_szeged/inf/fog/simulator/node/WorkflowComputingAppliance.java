@@ -31,6 +31,8 @@ public class WorkflowComputingAppliance extends ComputingAppliance {
     public PriorityQueue<WorkflowJob> workflowQueue;
     
     public Set<String> cluster;
+
+    private Integer fixedVmCount = null;
     
     public static ComputingAppliance getNodeByName(String name) {
         for (ComputingAppliance ca : ComputingAppliance.allComputingAppliances) {
@@ -64,5 +66,13 @@ public class WorkflowComputingAppliance extends ComputingAppliance {
                 }
             }
         }
+    }
+
+    public Integer getFixedVmCount() {
+        return fixedVmCount;
+    }
+
+    public void setFixedVmCount(Integer fixedVmCount) {
+        this.fixedVmCount = fixedVmCount;
     }
 }

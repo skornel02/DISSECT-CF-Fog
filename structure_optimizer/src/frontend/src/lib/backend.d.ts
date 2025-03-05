@@ -106,6 +106,8 @@ export interface components {
             populationSize?: number;
             /** Format: int32 */
             maximumGenerations?: number;
+            /** Format: int32 */
+            tasksMultiplier?: number;
             /** Format: double */
             timeWeight?: number;
             /** Format: double */
@@ -150,6 +152,8 @@ export interface components {
             finishedAt?: string;
             /** Format: double */
             fitness?: number;
+            /** Format: int32 */
+            pricePenalty?: number;
             bestPhenotype?: boolean;
         };
         SimulationResult: {
@@ -166,8 +170,8 @@ export interface components {
             totalTasks: number;
             /** Format: int32 */
             completedTasks: number;
-            errorMessage?: string;
             errorStackTrace?: string;
+            errorMessage?: string;
         };
         SimulationStatusDto: {
             id: string;

@@ -68,7 +68,7 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
                     .build();
 
             var result = engine.stream()
-                    .limit(Limits.byFitnessConvergence(10, 25, 0.01))
+//                    .limit(Limits.byFitnessConvergence(10, 25, 0.01))
                     .limit(goalSettings.getMaximumGenerations())
                     .peek(er -> {
                         currentGeneration = er.generation();
@@ -111,7 +111,7 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
 
             simulations.add(simulation);
 
-            var result = service.runSimulation(simulation);
+            var result = service.runSimulation(simulation, goalSettings.getTasksMultiplier());
             simulation.setResult(result);
             simulation.setStatus(SimulationStatus.Finished);
             simulation.setFinishedAt(OffsetDateTime.now());
@@ -131,6 +131,7 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
                 price = goalSettings.isMinimizingCost()
                     ? price * 100
                     : price / 100;
+                simulation.setPricePenalty(100);
             }
 
             var fitness = execTime * goalSettings.getTimeWeight()
