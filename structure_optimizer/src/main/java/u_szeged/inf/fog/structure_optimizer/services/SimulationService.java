@@ -22,6 +22,7 @@ import hu.u_szeged.inf.fog.simulator.util.SimLogger;
 import hu.u_szeged.inf.fog.simulator.util.xml.WorkflowJobModel;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowExecutor;
 import hu.u_szeged.inf.fog.simulator.workflow.WorkflowJob;
+import hu.u_szeged.inf.fog.simulator.workflow.aco.CentralisedAntOptimiser;
 import hu.u_szeged.inf.fog.simulator.workflow.scheduler.MaxMinScheduler;
 import hu.u_szeged.inf.fog.simulator.workflow.scheduler.WorkflowScheduler;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -47,12 +49,7 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Service
-public class SimulationService {
-
-    private static final Pattern TotalCostPattern = Pattern.compile("Total cost \\(EUR\\): (\\d+\\.\\d+E?-?\\d*)");
-    private static final Pattern TotalEnergyConsumptionPattern = Pattern.compile("Total energy consumption \\(kWh\\): (\\d+\\.\\d+E?-?\\d*)");
-    private static final Pattern ExecutionTime = Pattern.compile("Avg execution time \\(min\\): (-?\\d+\\.\\d+E?-?\\d*)");
-    private static final Pattern TaskCompleted = Pattern.compile("Completed: (\\d+)/(\\d+)");
+public class SimulationService implements ISimulationService {
 
     private static final Lock lock = new ReentrantLock();
 
@@ -60,7 +57,7 @@ public class SimulationService {
 
     private static final LoadingCache<SimulationCacheKey, SimulationResult> simulationCache = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofHours(1))
-            .weigher((SimulationCacheKey key, SimulationResult value) ->key.structure().size())
+            .weigher((SimulationCacheKey key, SimulationResult value) -> key.structure().size())
             .maximumWeight(10_000)
             .build(a -> null);
 
@@ -135,8 +132,6 @@ public class SimulationService {
             });
 
             task.get(1, TimeUnit.MINUTES);
-
-            ScenarioBase.logStreamProcessing();
         } catch (TimeoutException e) {
             SimLogger.simLogger.log(Level.SEVERE, "Event simulation timed out!", e);
 
@@ -146,12 +141,71 @@ public class SimulationService {
 
             resultBuiilder = resultBuiilder.exception(e);
         } finally {
+            var scheduler = WorkflowScheduler.schedulers.getFirst();
+            SimLogger.logRes("App: " + scheduler.appName);
+
+            var totalTasks = scheduler.jobs.size();
+            var completedTasks = (int) scheduler.jobs.stream()
+                    .filter(wj -> wj.state == WorkflowJob.State.COMPLETED)
+                    .count();
+            SimLogger.logRes("Completed: " + completedTasks + "/" + totalTasks);
+
+            var executionTime = (scheduler.stopTime - scheduler.startTime);
+            SimLogger.logRes("Execution time (min.): " + executionTime);
+
+            SimLogger.logRes("Task distribution: ");
+            for (Map.Entry<String, Integer> entry : scheduler.vmTaskLogger.entrySet()) {
+                SimLogger.logRes("\t" + entry.getKey() + " - " + entry.getValue() + " taks");
+            }
+
+            double price = 0.0;
+            double energyConsumption = 0.0;
+
+            SimLogger.logRes("Computers: ");
+            for (WorkflowComputingAppliance ca : scheduler.computeArchitecture) {
+                var caPrice = scheduler.instanceMap.get(ca).calculateCloudCost(executionTime);
+                var collector = EnergyDataCollector.getEnergyCollector(ca.iaas);
+                var caEnergyConsumption = collector != null
+                    ? collector.energyConsumption
+                    : 0.0;
+
+                price += caPrice;
+                energyConsumption += caEnergyConsumption;
+
+                SimLogger.logRes("\t" + ca.name + ":");
+                SimLogger.logRes("\t\t Price per tick (EUR): " + scheduler.instanceMap.get(ca).pricePerTick);
+                SimLogger.logRes("\t\t Total price (EUR): " + caPrice);
+                SimLogger.logRes("\t\t Energy consumption (J): " + caEnergyConsumption);
+            }
+
+            energyConsumption /= 1000d * 3_000_000d;
+
+            SimLogger.logRes("");
+            SimLogger.logRes("Cost (EUR): " + price);
+            SimLogger.logRes("Total energy (kWh): " + energyConsumption);
+            SimLogger.logRes("Total time on network (seconds): "
+                    + TimeUnit.SECONDS.convert(scheduler.timeOnNetwork, TimeUnit.MILLISECONDS));
+            SimLogger.logRes("Total bytes on network (MB): " + scheduler.bytesOnNetwork / 1024 / 1024);
+
+
+            resultBuiilder = resultBuiilder
+                    .totalCost(price)
+                    .totalEnergyConsumption(energyConsumption)
+                    .totalTasks(totalTasks)
+                    .completedTasks(completedTasks)
+                    .executionTime(executionTime);
+
+            if (totalTasks > completedTasks) {
+                resultBuiilder = resultBuiilder.exception(new Exception("Not all tasks were completed"));
+            }
+
+
             Timed.resetTimed();
 
             WorkflowScheduler.schedulers.clear();
             WorkflowJob.workflowJobs.clear();
 
-            if(WorkflowExecutor.workflowSchedulers != null){
+            if (WorkflowExecutor.workflowSchedulers != null) {
                 WorkflowExecutor.workflowSchedulers.clear();
             }
 
@@ -185,67 +239,11 @@ public class SimulationService {
             SimLogger.simLogger.removeHandler(logHandler);
         }
 
-        var totalCost = -1.0;
-        var totalEnergyConsumption = -1.0;
-        var executionTime = -1D;
-        var totalTasks = -1;
-        var completedTasks = -1;
-
         var compiledLogs = logs.toString();
-
-        if (!compiledLogs.isEmpty()) {
-            var totalCostMatcher = TotalCostPattern.matcher(compiledLogs);
-            if (totalCostMatcher.find()) {
-                try {
-                    totalCost = Double.parseDouble(totalCostMatcher.group(1));
-                } catch (Exception exception) {
-                    log.warn("Error parsing total cost", exception);
-                }
-            }
-
-            var totalEnergyConsumptionMatcher = TotalEnergyConsumptionPattern.matcher(compiledLogs);
-            if (totalEnergyConsumptionMatcher.find()) {
-                try {
-                    totalEnergyConsumption = Double.parseDouble(totalEnergyConsumptionMatcher.group(1));
-                } catch (Exception exception) {
-                    log.warn("Error parsing energy consumption", exception);
-                }
-            }
-
-            var executionTimeMatcher = ExecutionTime.matcher(compiledLogs);
-            if (executionTimeMatcher.find()) {
-                try {
-                    System.out.println(executionTimeMatcher.group(1));
-                    executionTime = Double.parseDouble(executionTimeMatcher.group(1)) * 60 * 1000;
-                    System.out.println(executionTime);
-                } catch (Exception exception) {
-                    log.warn("Error parsing execution time", exception);
-                }
-            }
-
-            var taskCompletedMatcher = TaskCompleted.matcher(compiledLogs);
-            if (taskCompletedMatcher.find()) {
-                try {
-                    completedTasks = Integer.parseInt(taskCompletedMatcher.group(1));
-                    totalTasks = Integer.parseInt(taskCompletedMatcher.group(2));
-                } catch (Exception exception) {
-                    log.warn("Error parsing task completion", exception);
-                }
-            }
-        }
-
-        if (totalTasks > completedTasks) {
-            resultBuiilder = resultBuiilder.exception(new Exception("Not all tasks were completed"));
-        }
 
         var finishedResult = resultBuiilder
                 .resultDirectory(ScenarioBase.resultDirectory)
                 .logs(compiledLogs)
-                .totalCost(totalCost)
-                .totalEnergyConsumption(totalEnergyConsumption)
-                .totalTasks(totalTasks)
-                .completedTasks(completedTasks)
-                .executionTime(executionTime)
                 .build();
 
         lock.unlock();
@@ -263,34 +261,33 @@ public class SimulationService {
         String cloudfile = ScenarioBase.resourcePath + "LPDS_magic.xml";
 
         for (var computerInstance : model.getInstances()) {
+            var counter = 0;
             var appliances = new ArrayList<WorkflowComputingAppliance>();
 
-            simulationMapping.put(computerInstance, appliances);
-            if (computerInstance.count() == 0) {
-                continue;
+            for (var i = 0; i < computerInstance.count(); i++) {
+                var id = computerInstance.region() + "-" + computerInstance.computerType() + "-" + ++counter;
+
+                VirtualAppliance va = new VirtualAppliance(id + "-va", 100, 0, false, 1073741824L);
+                AlterableResourceConstraints arc = new AlterableResourceConstraints(
+                        computerInstance.cores(),
+                        computerInstance.processingPerTick(),
+                        computerInstance.memory());
+
+                WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(
+                        cloudfile,
+                        id + "-cloud",
+                        new GeoLocation(computerInstance.latitude(), computerInstance.longitude()),
+                        1000);
+
+                cloud.setFixedVmCount(1);
+
+                Instance instance = new Instance(id + "-instance", va, arc, computerInstance.pricePerTick(), 1);
+
+                appliances.add(cloud);
+                workflowArchitecture.put(cloud, instance);
             }
 
-            var id = computerInstance.region() + "-" + computerInstance.computerType();
-
-            VirtualAppliance va = new VirtualAppliance(id + "-va", 100, 0, false, 1073741824L);
-            AlterableResourceConstraints arc = new AlterableResourceConstraints(
-                    computerInstance.cores(),
-                    computerInstance.processingPerTick(),
-                    computerInstance.memory());
-
-            WorkflowComputingAppliance cloud = new WorkflowComputingAppliance(
-                    cloudfile,
-                    id + "-cloud",
-                    new GeoLocation(computerInstance.latitude(), computerInstance.longitude()),
-                    1000);
-
-            cloud.setFixedVmCount(computerInstance.count());
-
-            Instance instance = new Instance(id + "-instance", va, arc, computerInstance.pricePerTick(), 1);
-
-            appliances.add(cloud);
-            workflowArchitecture.put(cloud, instance);
-
+            simulationMapping.put(computerInstance, appliances);
         }
 
         for (var computerInstance : model.getInstances()) {

@@ -36,8 +36,6 @@ export default function SimulationModelTable({
     }))
     : [], [data]);
 
-  console.log(additionalColumnDefs);
-
   return (
     <div className='h-full'>
       <Grid

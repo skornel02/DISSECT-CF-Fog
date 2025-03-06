@@ -144,12 +144,8 @@ public class WorkflowExecutor {
                                     EnergyDataCollector.getEnergyCollector(ca.iaas).stop();
                                 }
                             }
-                            String id = workflowJob.ca.name + "-" + Integer.toString(vm.hashCode());
-                            if (workflowScheduler.vmTaskLogger.get(id) == null) {
-                                workflowScheduler.vmTaskLogger.put(id, 1);
-                            } else {
-                                workflowScheduler.vmTaskLogger.put(id, workflowScheduler.vmTaskLogger.get(id) + 1);
-                            }
+                            String id = workflowJob.ca.name;
+                            workflowScheduler.vmTaskLogger.merge(id, 1, Integer::sum);
                                 
                             sendFileToChildren(workflowScheduler, workflowJob);
                             
