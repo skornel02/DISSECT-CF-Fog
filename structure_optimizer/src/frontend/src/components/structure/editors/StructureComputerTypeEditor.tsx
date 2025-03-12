@@ -57,7 +57,7 @@ export default function StructureComputerTypeEditor({
             cellRenderer: (params: any) => {
               return (
                 <div className="inline-flex gap-2">
-                  <span>{params.value?.toFixed(3)}</span>
+                  <span>{params.value?.toPrecision(3)}</span>
                   {/* MIPS over MHz vertically */}
                   <div className="flex flex-col">
                     <span className="text-xs border-b-2 border-black">
