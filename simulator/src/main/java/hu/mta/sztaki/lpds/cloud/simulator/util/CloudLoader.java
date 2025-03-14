@@ -27,6 +27,7 @@ package hu.mta.sztaki.lpds.cloud.simulator.util;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.EnumMap;
@@ -58,6 +59,8 @@ import hu.mta.sztaki.lpds.cloud.simulator.io.Repository;
  *         MTA SZTAKI (c) 2012"
  */
 public class CloudLoader {
+
+	private static HashMap<String, String> loadedFileContent = new HashMap<>();
 
 	/**
 	 * Offers the IaaSService creator functionality by defining the sax parser for
@@ -206,11 +209,19 @@ public class CloudLoader {
 				}
 			}
 		});
-		BufferedReader br = new BufferedReader(new FileReader(fileName));
-		xmlReader.parse(new InputSource(br));
-		br.close();
+
+		var fileContent = loadedFileContent.computeIfAbsent(fileName, (fn) -> {
+			try (var br = new BufferedReader(new FileReader(fn))) {
+				return br.lines().reduce("", (a, b) -> a + b + "\n");
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
+		} );
+
+		xmlReader.parse(new InputSource(new StringReader(fileContent)));
 		c = Calendar.getInstance();
 		System.out.println("Cloud Loader stops for: " + fileName + " at " + c.getTimeInMillis());
+
 		return returner.get(0);
 	}
 }

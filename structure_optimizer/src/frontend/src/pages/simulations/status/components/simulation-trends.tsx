@@ -98,7 +98,8 @@ export default function SimulationTrends({
     return data.filter(
       (item) =>
         (item.result?.totalTasks ?? 0) > 0 &&
-        item.result?.totalTasks === item.result?.completedTasks,
+        item.result?.totalTasks === item.result?.completedTasks 
+        && (item.fitness === undefined || item.fitness !== -1),
     );
   }, [data]);
 

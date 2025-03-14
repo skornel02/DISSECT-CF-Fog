@@ -152,7 +152,7 @@ export default function SimulationModelTable({
                               value={row.data.result.logs}
                               readOnly
                               className="max-h-[80vh]"
-                              rows={row.data.result.logs.split('\n').length}
+                              rows={row.data.result.logs?.split('\n').length}
                             />
                           </DialogDescription>
                         </DialogHeader>

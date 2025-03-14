@@ -69,10 +69,10 @@ public class SimulationService implements ISimulationService {
     public SimulationResult runSimulation(SimulationModel model, int tasksMultiplier) {
         var cacheKey = new SimulationCacheKey(model.getInstances(), tasksMultiplier);
         var cachedResult = simulationCache.getIfPresent(cacheKey);
-//        if (cachedResult != null) {
-//            log.info("Simulation result found in cache!");
-//            return cachedResult;
-//        }
+        if (cachedResult != null) {
+            log.info("Simulation result found in cache!");
+            return cachedResult;
+        }
 
         var resultBuiilder = SimulationResult.builder()
                 .id(model.getId());
@@ -91,47 +91,53 @@ public class SimulationService implements ISimulationService {
         SimLogger.simLogger.addHandler(logHandler);
         SimLogger.setLogging(2, false);
 
+        var invalidStructure = false;
+
         try {
-            // create a new temp directory
-            //var nextTempDirectory = Files.createTempDirectory("structure_optimizer-" + model.getId()).toFile();
-            //ScenarioBase.resultDirectory = nextTempDirectory.getAbsolutePath();
 
             var workflowArchitecture = getWorkflowArchitecture(model);
 
+            log.info("Workflow architecture created");
+
             if (workflowArchitecture.isEmpty()) {
-                throw new Exception("No computers found in the simulation model");
+                invalidStructure = true;
+            } else {
+//                WorkflowComputingAppliance.setDistanceBasedLatency();
+
+                for (var appliance : workflowArchitecture.keySet()) {
+                    new EnergyDataCollector(appliance.name, appliance.iaas, true);
+                }
+
+                log.info("Energy data collectors created");
+
+                WorkflowExecutor executor = WorkflowExecutor.getIstance();
+
+                var workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/IoT_CyberShake_100.xml";
+                var jobs = WorkflowJobModel.loadWorkflowXml(workflowFile, "Simulation");
+
+                var nextTasks = new ArrayList<WorkflowJob>();
+
+                for (var i = 0; i < tasksMultiplier; i++) {
+                    nextTasks.addAll(jobs.getValue());
+                }
+
+                jobs = Pair.ofNonNull("Simulation", nextTasks);
+
+                log.info("Workflow jobs created");
+
+                executor.submitJobs(new MaxMinScheduler(new ArrayList<>(workflowArchitecture.keySet()), workflowArchitecture, null, jobs));
+
+                var task = new CompletableFuture<Boolean>();
+
+                log.info("Starting simulation...");
+
+                executorService.submit(() -> {
+                    Timed.simulateUntilLastEvent();
+                    task.complete(true);
+                });
+
+                task.get(1, TimeUnit.MINUTES);
             }
-
-            WorkflowComputingAppliance.setDistanceBasedLatency();
-
-            for (var appliance : workflowArchitecture.keySet()) {
-                new EnergyDataCollector(appliance.name, appliance.iaas, true);
-            }
-
-            WorkflowExecutor executor = WorkflowExecutor.getIstance();
-
-
-            var workflowFile = ScenarioBase.resourcePath + "/WORKFLOW_examples/IoT_CyberShake_100.xml";
-            var jobs = WorkflowJobModel.loadWorkflowXml(workflowFile, "Simulation");
-
-            var nextTasks = new ArrayList<WorkflowJob>();
-
-            for (var i = 0; i < tasksMultiplier; i++) {
-                nextTasks.addAll(jobs.getValue());
-            }
-
-            jobs = Pair.ofNonNull("Simulation", nextTasks);
-
-            executor.submitJobs(new MaxMinScheduler(new ArrayList<>(workflowArchitecture.keySet()), workflowArchitecture, null, jobs));
-
-            var task = new CompletableFuture<Boolean>();
-
-            executorService.submit(() -> {
-                Timed.simulateUntilLastEvent();
-                task.complete(true);
-            });
-
-            task.get(1, TimeUnit.MINUTES);
         } catch (TimeoutException e) {
             SimLogger.simLogger.log(Level.SEVERE, "Event simulation timed out!", e);
 
@@ -141,64 +147,69 @@ public class SimulationService implements ISimulationService {
 
             resultBuiilder = resultBuiilder.exception(e);
         } finally {
-            var scheduler = WorkflowScheduler.schedulers.getFirst();
-            SimLogger.logRes("App: " + scheduler.appName);
+            if (!invalidStructure) {
 
-            var totalTasks = scheduler.jobs.size();
-            var completedTasks = (int) scheduler.jobs.stream()
-                    .filter(wj -> wj.state == WorkflowJob.State.COMPLETED)
-                    .count();
-            SimLogger.logRes("Completed: " + completedTasks + "/" + totalTasks);
+                var scheduler = WorkflowScheduler.schedulers.getFirst();
+                SimLogger.logRes("App: " + scheduler.appName);
 
-            var executionTime = (scheduler.stopTime - scheduler.startTime);
-            SimLogger.logRes("Execution time (min.): " + executionTime);
+                var totalTasks = scheduler.jobs.size();
+                var completedTasks = (int) scheduler.jobs.stream()
+                        .filter(wj -> wj.state == WorkflowJob.State.COMPLETED)
+                        .count();
+                SimLogger.logRes("Completed: " + completedTasks + "/" + totalTasks);
 
-            SimLogger.logRes("Task distribution: ");
-            for (Map.Entry<String, Integer> entry : scheduler.vmTaskLogger.entrySet()) {
-                SimLogger.logRes("\t" + entry.getKey() + " - " + entry.getValue() + " taks");
+                var executionTime = (scheduler.stopTime - scheduler.startTime);
+                SimLogger.logRes("Execution time (min.): " + executionTime);
+
+                SimLogger.logRes("Task distribution: ");
+                for (Map.Entry<String, Integer> entry : scheduler.vmTaskLogger.entrySet()) {
+                    SimLogger.logRes("\t" + entry.getKey() + " - " + entry.getValue() + " taks");
+                }
+
+                double price = 0.0;
+                double energyConsumption = 0.0;
+
+                SimLogger.logRes("Computers: ");
+                for (WorkflowComputingAppliance ca : scheduler.computeArchitecture) {
+                    var caPrice = scheduler.instanceMap.get(ca).calculateCloudCost(executionTime);
+                    var collector = EnergyDataCollector.getEnergyCollector(ca.iaas);
+                    var caEnergyConsumption = collector != null
+                            ? collector.energyConsumption
+                            : 0.0;
+
+                    price += caPrice;
+                    energyConsumption += caEnergyConsumption;
+
+                    SimLogger.logRes("\t" + ca.name + ":");
+                    SimLogger.logRes("\t\t Price per tick (EUR): " + scheduler.instanceMap.get(ca).pricePerTick);
+                    SimLogger.logRes("\t\t Total price (EUR): " + caPrice);
+                    SimLogger.logRes("\t\t Energy consumption (J): " + caEnergyConsumption);
+                }
+
+                energyConsumption /= 1000d * 3_000_000d;
+
+                SimLogger.logRes("");
+                SimLogger.logRes("Cost (EUR): " + price);
+                SimLogger.logRes("Total energy (kWh): " + energyConsumption);
+                SimLogger.logRes("Total time on network (seconds): "
+                        + TimeUnit.SECONDS.convert(scheduler.timeOnNetwork, TimeUnit.MILLISECONDS));
+                SimLogger.logRes("Total bytes on network (MB): " + scheduler.bytesOnNetwork / 1024 / 1024);
+
+
+                resultBuiilder = resultBuiilder
+                        .totalCost(price)
+                        .totalEnergyConsumption(energyConsumption)
+                        .totalTasks(totalTasks)
+                        .completedTasks(completedTasks)
+                        .executionTime(executionTime);
+
+                if (totalTasks > completedTasks) {
+                    resultBuiilder = resultBuiilder.exception(new Exception("Not all tasks were completed"));
+                }
+
+            } else {
+                resultBuiilder = resultBuiilder.exception(new Exception("Invalid structure"));
             }
-
-            double price = 0.0;
-            double energyConsumption = 0.0;
-
-            SimLogger.logRes("Computers: ");
-            for (WorkflowComputingAppliance ca : scheduler.computeArchitecture) {
-                var caPrice = scheduler.instanceMap.get(ca).calculateCloudCost(executionTime);
-                var collector = EnergyDataCollector.getEnergyCollector(ca.iaas);
-                var caEnergyConsumption = collector != null
-                    ? collector.energyConsumption
-                    : 0.0;
-
-                price += caPrice;
-                energyConsumption += caEnergyConsumption;
-
-                SimLogger.logRes("\t" + ca.name + ":");
-                SimLogger.logRes("\t\t Price per tick (EUR): " + scheduler.instanceMap.get(ca).pricePerTick);
-                SimLogger.logRes("\t\t Total price (EUR): " + caPrice);
-                SimLogger.logRes("\t\t Energy consumption (J): " + caEnergyConsumption);
-            }
-
-            energyConsumption /= 1000d * 3_000_000d;
-
-            SimLogger.logRes("");
-            SimLogger.logRes("Cost (EUR): " + price);
-            SimLogger.logRes("Total energy (kWh): " + energyConsumption);
-            SimLogger.logRes("Total time on network (seconds): "
-                    + TimeUnit.SECONDS.convert(scheduler.timeOnNetwork, TimeUnit.MILLISECONDS));
-            SimLogger.logRes("Total bytes on network (MB): " + scheduler.bytesOnNetwork / 1024 / 1024);
-
-
-            resultBuiilder = resultBuiilder
-                    .totalCost(price)
-                    .totalEnergyConsumption(energyConsumption)
-                    .totalTasks(totalTasks)
-                    .completedTasks(completedTasks)
-                    .executionTime(executionTime);
-
-            if (totalTasks > completedTasks) {
-                resultBuiilder = resultBuiilder.exception(new Exception("Not all tasks were completed"));
-            }
-
 
             Timed.resetTimed();
 
@@ -237,20 +248,23 @@ public class SimulationService implements ISimulationService {
             Provider.allProviders.clear();
 
             SimLogger.simLogger.removeHandler(logHandler);
+
+            // garbage collect
+            System.gc();
+
+            lock.unlock();
         }
 
         var compiledLogs = logs.toString();
 
-        var finishedResult = resultBuiilder
+        var result =resultBuiilder
                 .resultDirectory(ScenarioBase.resultDirectory)
                 .logs(compiledLogs)
                 .build();
 
-        lock.unlock();
+//        simulationCache.put(cacheKey, result);
 
-//        simulationCache.put(cacheKey, finishedResult);
-
-        return finishedResult;
+        return result;
     }
 
 
@@ -307,7 +321,7 @@ public class SimulationService implements ISimulationService {
                             continue;
                         }
 
-                        appliance.addNeighbor(targetAppliance, latency);
+                        appliance.iaas.repositories.get(0).addLatencies(targetAppliance.iaas.repositories.get(0).getName(), latency);
                     }
                 }
             }

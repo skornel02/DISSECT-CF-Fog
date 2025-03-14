@@ -1,6 +1,7 @@
 package u_szeged.inf.fog.structure_optimizer.optimizers;
 
 import io.jenetics.*;
+import io.jenetics.engine.Constraint;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import io.jenetics.engine.Limits;
@@ -23,8 +24,6 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
 
     private final ClassLoader contextClassLoader;
 
-    private static final int MAX_COMPUTERS = 10;
-
     private long currentGeneration;
     private boolean isFinished = false;
 
@@ -39,6 +38,8 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
             List<SimulationComputerInstance> computerInstances) {
         super(service, id, computerInstances);
 
+        var maxComputers = 10 * goalSettings.getTasksMultiplier();
+
         contextClassLoader = this.getClass().getClassLoader();
 
         this.goalSettings = goalSettings;
@@ -48,18 +49,19 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
 
             var chromosomes = new ArrayList<IntegerChromosome>();
             for (var ignored : computerInstances) {
-                chromosomes.add(IntegerChromosome.of(0, MAX_COMPUTERS));
+                chromosomes.add(IntegerChromosome.of(0, maxComputers));
             }
 
             var gtf = Genotype.of(chromosomes);
+            Constraint<IntegerGene, Integer> hasStructureConstraint = Constraint.of((phenotype) -> phenotype.genotype().chromosome().stream().mapToInt(IntegerGene::intValue).sum() > 0);
 
             var engine = Engine
-                    .builder(evalPidGenes(), gtf)
+                    .builder(evalPidGenes(), hasStructureConstraint.constrain(gtf))
                     .optimize(goalSettings.isMinimizingCost() ? Optimize.MINIMUM : Optimize.MAXIMUM)
                     .alterers(
-                            new Mutator<>(0.1),
-                            new MeanAlterer<>(0.1),
-                            new UniformCrossover<>(0.1, 0.1)
+                            new Mutator<>(0.5),
+                            new MeanAlterer<>(0.25),
+                            new UniformCrossover<>(0.1, 0.25)
                     )
                     .populationSize(goalSettings.getPopulationSize())
                     .selector(goalSettings.isUseRandom()
@@ -69,6 +71,7 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
 
             var result = engine.stream()
 //                    .limit(Limits.byFitnessConvergence(10, 25, 0.01))
+                    .limit(Limits.bySteadyFitness(25))
                     .limit(goalSettings.getMaximumGenerations())
                     .peek(er -> {
                         currentGeneration = er.generation();
