@@ -48,9 +48,10 @@ export default function StructureComputerTypeEditor({
             field: 'cores',
             editable: true,
             type: 'number',
+            valueFormatter: ({ value }) => `${value?.toString()} cores`,
           },
           {
-            headerName: 'Instructions per tick',
+            headerName: 'Instruction per Clock',
             field: 'processingPerTick',
             editable: true,
             type: 'number',
@@ -61,9 +62,9 @@ export default function StructureComputerTypeEditor({
                   {/* MIPS over MHz vertically */}
                   <div className="flex flex-col">
                     <span className="text-xs border-b-2 border-black">
-                      MIPS
+                      Instruction
                     </span>
-                    <span className="text-xs">MHz</span>
+                    <span className="text-xs">Clock</span>
                   </div>
                 </div>
               );

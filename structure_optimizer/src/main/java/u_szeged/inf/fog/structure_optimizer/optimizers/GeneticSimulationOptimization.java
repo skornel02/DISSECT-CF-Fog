@@ -60,7 +60,6 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
                     .optimize(goalSettings.isMinimizingCost() ? Optimize.MINIMUM : Optimize.MAXIMUM)
                     .alterers(
                             new Mutator<>(0.5),
-                            new MeanAlterer<>(0.25),
                             new UniformCrossover<>(0.1, 0.25)
                     )
                     .populationSize(goalSettings.getPopulationSize())
