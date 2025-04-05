@@ -51,13 +51,11 @@ export default function StructureRegionEditor({
               headerName: 'Latitude',
               field: 'latitude',
               editable: true,
-              type: 'number',
             },
             {
               headerName: 'Longitude',
               field: 'longitude',
               editable: true,
-              type: 'number',
             },
             {
               headerName: 'Actions',
@@ -183,6 +181,7 @@ export default function StructureRegionEditor({
         </DraggableMarker>
         {regions.map((region) => (
           <DraggableMarker
+            key={`${region.name}-${region.latitude}-${region.longitude}`}
             position={[region.latitude!, region.longitude!]}
             setPosition={(position) => {
               setStructure((_) => ({

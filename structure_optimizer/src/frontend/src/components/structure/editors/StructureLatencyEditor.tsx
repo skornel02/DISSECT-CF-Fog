@@ -1,23 +1,6 @@
-import EditableTableCell from '@/components/ui-custom/EditableTableCell';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { SchemaSimulationStructure } from '@/lib/backend';
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
 import { useMemo } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import { SchemaSimulationStructure } from '@/lib/backend';
 import {
   MapContainer,
   Marker,
@@ -25,6 +8,7 @@ import {
   TileLayer,
   Tooltip,
 } from 'react-leaflet';
+import { ColDef } from 'ag-grid-community';
 
 type RegionLatencyType = {
   region: string;
@@ -53,74 +37,38 @@ export default function StructureLatencyEditor({
     [structure.regionConnections],
   );
 
-  const columns: ColumnDef<RegionLatencyType>[] = useMemo(
-    () =>
-      [
-        {
-          accessorKey: 'region',
-          header: 'Region',
-        },
-        ...regions.map(
-          (region) =>
-            ({
-              accessorKey: region.name ?? '-',
-              header: region.name ?? '-',
-              cell: ({ row }) => (
-                <EditableTableCell
-                  type="number"
-                  getValue={() => {
-                    const value = row.original[region.name ?? '-'];
+  const columnDefs: ColDef<RegionLatencyType>[] = useMemo(() => {
+    const baseColumns: ColDef<RegionLatencyType>[] = [
+      { field: 'region', headerName: 'Region', sortable: true, filter: true },
+    ];
 
-                    return value === 0 ? '' : value.toString();
-                  }}
-                  placeholder={structure.defaultLatency?.toString()}
-                  setValue={(value) => {
-                    if (Number.isSafeInteger(parseInt(value))) {
-                      console.log(
-                        'Setting latency',
-                        row.original.region,
-                        region.name,
-                        parseInt(value),
-                      );
-                      setStructure((_) => ({
-                        ..._,
-                        regionConnections: [
-                          ...regionConnections.filter(
-                            (r) =>
-                              !(
-                                r.from === row.original.region &&
-                                r.to === region.name
-                              ),
-                          ),
-                          {
-                            from: row.original.region,
-                            to: region.name,
-                            latency: parseInt(value),
-                          },
-                        ],
-                      }));
-                    } else {
-                      setStructure((_) => ({
-                        ..._,
-                        regionConnections: regionConnections.filter(
-                          (r) =>
-                            !(
-                              r.from === row.original.region &&
-                              r.to === region.name
-                            ),
-                        ),
-                      }));
-                    }
-                  }}
-                />
-              ),
-            }) satisfies ColumnDef<RegionLatencyType>,
-        ),
-      ] satisfies ColumnDef<RegionLatencyType>[],
-    [regions, regionConnections],
-  );
+    const dynamicColumns: ColDef<RegionLatencyType>[] = regions.map(
+      (region) =>
+        ({
+          field: region.name ?? '-',
+          headerName: region.name ?? '-',
+          editable: true,
+          valueParser: (params) => {
+            const value = parseInt(params.newValue);
+            return Number.isSafeInteger(value) ? value : 0;
+          },
+          valueFormatter: (params) => {
+            const value = params.value;
+            return Number.isSafeInteger(value) && value > 0
+              ? value
+              : structure.defaultLatency;
+          },
+          cellStyle: (params) =>
+            params.value > 0
+              ? { fontStyle: '', color: '' }
+              : { fontStyle: 'italic', color: 'gray' },
+        }) satisfies ColDef<RegionLatencyType>,
+    );
 
-  const regionRows = useMemo(() => {
+    return [...baseColumns, ...dynamicColumns];
+  }, [structure.defaultLatency, regions]);
+
+  const rowData = useMemo(() => {
     return regions.map((region) => {
       const row: RegionLatencyType = { region: region.name ?? '-' };
 
@@ -135,136 +83,95 @@ export default function StructureLatencyEditor({
     });
   }, [regions, regionConnections]);
 
-  const table = useReactTable({
-    data: regionRows,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
+  const onCellValueChanged = (params: any) => {
+    const { data, colDef, newValue } = params;
+    const targetRegion = colDef.field;
+
+    if (targetRegion && typeof newValue === 'number') {
+      setStructure((_) => ({
+        ..._,
+        regionConnections: [
+          ...regionConnections.filter(
+            (r) => !(r.from === data.region && r.to === targetRegion),
+          ),
+          ...(newValue > 0
+            ? [
+                {
+                  from: data.region,
+                  to: targetRegion,
+                  latency: newValue,
+                },
+              ]
+            : []),
+        ],
+      }));
+    }
+  };
 
   return (
     <>
-      <Card>
-        <CardContent>
-          <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label htmlFor="defaultLatency">Default Latency in ms</Label>
-            <Input
-              type="number"
-              id="defaultLatency"
-              min={0}
-              placeholder="10"
-              value={structure.defaultLatency}
-              onChange={(val) =>
-                setStructure((_) => ({
-                  ..._,
-                  defaultLatency: parseInt(val.target.value),
-                }))
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center">
-                  No regions
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-
-        <MapContainer
-          center={[0, 0]}
-          zoom={2}
-          scrollWheelZoom={true}
-          className="h-[500px]">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {regions.map((region) => (
-            <Marker position={[region.latitude!, region.longitude!]}>
-              <Tooltip
-                direction="bottom"
-                offset={[-15, 25]}
-                opacity={1}
-                permanent>
-                {region.name}
-              </Tooltip>
-            </Marker>
-          ))}
-          {regionConnections.map((connection) => {
-            const from = regions.find((r) => r.name === connection.from);
-            const to = regions.find((r) => r.name === connection.to);
-
-            if (from === undefined || to === undefined) {
-              return null;
-            }
-
-            if (from === to) {
-              return null;
-            }
-
-            return (
-              <Polyline
-                positions={[
-                  [from.latitude!, from.longitude!],
-                  [to.latitude!, to.longitude!],
-                ]}
-                pathOptions={{
-                  color: 'black',
-                  weight: 1,
-                }}>
-                <Tooltip
-                  direction="top"
-                  offset={[0, -20]}
-                  opacity={0.5}
-                  permanent>
-                  {connection.latency}ms
-                </Tooltip>
-              </Polyline>
-            );
-          })}
-        </MapContainer>
+      <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+        <AgGridReact
+          rowData={rowData}
+          columnDefs={columnDefs}
+          domLayout="autoHeight"
+          onCellValueChanged={onCellValueChanged}
+        />
       </div>
+
+      <MapContainer
+        center={[0, 0]}
+        zoom={2}
+        scrollWheelZoom={true}
+        className="h-[500px]">
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {regions.map((region) => (
+          <Marker position={[region.latitude!, region.longitude!]}>
+            <Tooltip
+              direction="bottom"
+              offset={[-15, 25]}
+              opacity={1}
+              permanent>
+              {region.name}
+            </Tooltip>
+          </Marker>
+        ))}
+        {regionConnections.map((connection) => {
+          const from = regions.find((r) => r.name === connection.from);
+          const to = regions.find((r) => r.name === connection.to);
+
+          if (from === undefined || to === undefined) {
+            return null;
+          }
+
+          if (from === to) {
+            return null;
+          }
+
+          return (
+            <Polyline
+              positions={[
+                [from.latitude!, from.longitude!],
+                [to.latitude!, to.longitude!],
+              ]}
+              pathOptions={{
+                color: 'black',
+                weight: 1,
+              }}>
+              <Tooltip
+                direction="top"
+                offset={[0, -20]}
+                opacity={0.5}
+                permanent>
+                {connection.latency}ms
+              </Tooltip>
+            </Polyline>
+          );
+        })}
+      </MapContainer>
     </>
   );
 }

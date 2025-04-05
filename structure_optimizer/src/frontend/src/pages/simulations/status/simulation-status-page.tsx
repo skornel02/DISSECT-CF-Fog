@@ -9,6 +9,7 @@ import SimulationModelTable from '@/pages/simulations/status/components/simulati
 import SimulationTrends from './components/simulation-trends';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useInterval } from 'usehooks-ts';
+import SimulationManual from './components/simulation-manual';
 
 export default function SimulationStatusPage() {
   const { id } = useParams();
@@ -59,7 +60,9 @@ export default function SimulationStatusPage() {
         }
 
         setSimulations((prev) => [
-          ...prev.filter((item) => !data.simulations.some((s) => s.id === item.id)),
+          ...prev.filter(
+            (item) => !data.simulations.some((s) => s.id === item.id),
+          ),
           ...data.simulations,
         ]);
       }
@@ -93,12 +96,22 @@ export default function SimulationStatusPage() {
         <TabsList className="w-full flex">
           <TabsTrigger value="stats">Statistics</TabsTrigger>
           <TabsTrigger value="data">Simulation data</TabsTrigger>
+          <TabsTrigger value="manual">Insight</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="flex-grow">
-          <SimulationTrends data={simulations} goalSettings={simulation?.goalSettings} />
+          <SimulationTrends
+            data={simulations}
+            goalSettings={simulation?.goalSettings}
+          />
         </TabsContent>
         <TabsContent value="data" className="flex-grow">
-          <SimulationModelTable data={simulations} running={simulation?.isRunning ?? true} />
+          <SimulationModelTable
+            data={simulations}
+            running={simulation?.isRunning ?? true}
+          />
+        </TabsContent>
+        <TabsContent value="manual" className="flex-grow">
+          <SimulationManual data={simulations} />
         </TabsContent>
       </Tabs>
     </div>

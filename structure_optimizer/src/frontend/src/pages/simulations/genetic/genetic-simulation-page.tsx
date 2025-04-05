@@ -2,10 +2,12 @@ import StructureEditor from '@/components/structure/StructureEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { SchemaGoalSettings, SchemaSimulationStructure } from '@/lib/backend';
 import { client } from '@/lib/backend-client';
-import { useCallback, useState } from 'react';
+import { getItem, setItem } from 'localforage';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function GeneticSimulationPage() {
@@ -59,13 +61,31 @@ export default function GeneticSimulationPage() {
 
       navigate(`/simulations/${data.guid}`);
     },
-    [],
+    [navigate],
   );
+
+  useEffect(() => {
+    getItem('goalSettings', (_, value) => {
+      if (value) {
+        console.log('Loaded goal settings from local storage!');
+        setGoalSettings(value);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    async function saveGoalSettings() {
+      await setItem('goalSettings', goalSettings);
+    }
+
+    saveGoalSettings();
+  }, [goalSettings]);
 
   return (
     <div className="p-4">
       <h1 className="mb-2 text-xl">Random Simulation</h1>
       <StructureEditor handleChange={setStructure} />
+      <Separator className="my-2" />
       <div className="grid grid-cols-3 grid-flow-row mt-2">
         <div className="grid grid-cols-2 gap-2 items-center min-w-[150px]">
           <Label htmlFor="timeWeight">Time weight</Label>
@@ -110,9 +130,9 @@ export default function GeneticSimulationPage() {
           />
         </div>
         <div className="grid grid-cols-2 gap-2 items-center">
-          <Label htmlFor='minimize'>Minimize cost</Label>
+          <Label htmlFor="minimize">Minimize cost</Label>
           <Input
-            id='minimize'
+            id="minimize"
             type="checkbox"
             checked={goalSettings.minimizingCost}
             onChange={(e) =>
@@ -121,13 +141,13 @@ export default function GeneticSimulationPage() {
                 minimizingCost: e.target.checked,
               })
             }
-            className='h-4'
+            className="h-4"
           />
         </div>
         <div className="grid grid-cols-2 gap-2 items-center">
-          <Label htmlFor='random'>Use random</Label>
+          <Label htmlFor="random">Use random</Label>
           <Input
-            id='random'
+            id="random"
             type="checkbox"
             checked={goalSettings.useRandom}
             onChange={(e) =>
@@ -136,7 +156,7 @@ export default function GeneticSimulationPage() {
                 useRandom: e.target.checked,
               })
             }
-            className='h-4'
+            className="h-4"
           />
         </div>
         <div className="grid grid-cols-2 gap-2 items-center">
@@ -194,7 +214,9 @@ export default function GeneticSimulationPage() {
             }
           />
         </div>
-        <Button className='col-span-3' onClick={() => startSimulation(structure, goalSettings)}>
+        <Button
+          className="col-span-3"
+          onClick={() => startSimulation(structure, goalSettings)}>
           Start Simulation
         </Button>
       </div>

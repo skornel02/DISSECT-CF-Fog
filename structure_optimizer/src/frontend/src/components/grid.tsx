@@ -4,7 +4,6 @@ import {
   AllCommunityModule,
   ExcelExportParams,
   ModuleRegistry,
-  themeQuartz,
 } from 'ag-grid-community';
 import {
   ExcelExportModule,
@@ -119,7 +118,6 @@ export default function Grid<TData, TLoaderParam>({
           ref={gridRef}
           quickFilterText={quickFilter}
           rowData={rowData}
-          theme={themeQuartz}
           loading={masterIsLoading}
         />
       </div>

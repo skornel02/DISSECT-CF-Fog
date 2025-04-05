@@ -47,14 +47,12 @@ export default function StructureComputerTypeEditor({
             headerName: 'Computing cores (CPU)',
             field: 'cores',
             editable: true,
-            type: 'number',
             valueFormatter: ({ value }) => `${value?.toString()} cores`,
           },
           {
             headerName: 'Instruction per Clock',
             field: 'processingPerTick',
             editable: true,
-            type: 'number',
             cellRenderer: (params: any) => {
               return (
                 <div className="inline-flex gap-2">
@@ -75,7 +73,6 @@ export default function StructureComputerTypeEditor({
             field: 'memory',
             editable: true,
             cellEditor: 'agTextCellEditor',
-            type: 'text',
             valueSetter: (params) => {
               params.data.memory = bytes(params.newValue.toString());
               return true;
@@ -88,7 +85,6 @@ export default function StructureComputerTypeEditor({
             headerName: 'Price per tick',
             field: 'pricePerTick',
             editable: true,
-            type: 'number',
             valueFormatter: ({ value }) => `${value?.toString()} €`,
           },
           {
