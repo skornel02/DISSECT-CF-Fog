@@ -111,7 +111,7 @@ export default function SimulationStatusPage() {
           />
         </TabsContent>
         <TabsContent value="manual" className="flex-grow">
-          <SimulationManual data={simulations} />
+          <SimulationManual id={id!} data={simulations} refresh={refreshStatus} />
         </TabsContent>
       </Tabs>
     </div>

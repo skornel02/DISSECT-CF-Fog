@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/simulations/{id}/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runManualSimulation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/simulations/random": {
         parameters: {
             query?: never;
@@ -56,6 +72,62 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SimulationComputerInstance: {
+            /** Format: int32 */
+            count?: number;
+            region?: string;
+            /** Format: double */
+            latitude?: number;
+            /** Format: double */
+            longitude?: number;
+            computerType?: string;
+            /** Format: int32 */
+            cores?: number;
+            /** Format: double */
+            processingPerTick?: number;
+            /** Format: int64 */
+            memory?: number;
+            /** Format: double */
+            pricePerTick?: number;
+            latencyMap?: {
+                [key: string]: number;
+            };
+        };
+        SimulationModel: {
+            id?: string;
+            /** @enum {string} */
+            status?: "Waiting" | "Processing" | "Finished";
+            instances?: components["schemas"]["SimulationComputerInstance"][];
+            /** Format: int64 */
+            generation?: number;
+            result?: components["schemas"]["SimulationResult"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: double */
+            fitness?: number;
+            /** Format: int32 */
+            pricePenalty?: number;
+            bestPhenotype?: boolean;
+        };
+        SimulationResult: {
+            id: string;
+            resultDirectory: string;
+            logs: string;
+            /** Format: double */
+            totalCost: number;
+            /** Format: double */
+            totalEnergyConsumption: number;
+            /** Format: double */
+            executionTime: number;
+            /** Format: int32 */
+            totalTasks: number;
+            /** Format: int32 */
+            completedTasks: number;
+            errorMessage?: string;
+            errorStackTrace?: string;
+        };
         ComputerInstance: {
             computerSpecification?: string;
             regionSpecification?: string;
@@ -117,62 +189,6 @@ export interface components {
             /** Format: double */
             maximumPrice?: number;
         };
-        SimulationComputerInstance: {
-            /** Format: int32 */
-            count?: number;
-            region?: string;
-            /** Format: double */
-            latitude?: number;
-            /** Format: double */
-            longitude?: number;
-            computerType?: string;
-            /** Format: int32 */
-            cores?: number;
-            /** Format: double */
-            processingPerTick?: number;
-            /** Format: int64 */
-            memory?: number;
-            /** Format: double */
-            pricePerTick?: number;
-            latencyMap?: {
-                [key: string]: number;
-            };
-        };
-        SimulationModel: {
-            id?: string;
-            /** @enum {string} */
-            status?: "Waiting" | "Processing" | "Finished";
-            instances?: components["schemas"]["SimulationComputerInstance"][];
-            /** Format: int64 */
-            generation?: number;
-            result?: components["schemas"]["SimulationResult"];
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            finishedAt?: string;
-            /** Format: double */
-            fitness?: number;
-            /** Format: int32 */
-            pricePenalty?: number;
-            bestPhenotype?: boolean;
-        };
-        SimulationResult: {
-            id: string;
-            resultDirectory: string;
-            logs: string;
-            /** Format: double */
-            totalCost: number;
-            /** Format: double */
-            totalEnergyConsumption: number;
-            /** Format: double */
-            executionTime: number;
-            /** Format: int32 */
-            totalTasks: number;
-            /** Format: int32 */
-            completedTasks: number;
-            errorStackTrace?: string;
-            errorMessage?: string;
-        };
         SimulationStatusDto: {
             id: string;
             type: string;
@@ -187,6 +203,9 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type SchemaSimulationComputerInstance = components['schemas']['SimulationComputerInstance'];
+export type SchemaSimulationModel = components['schemas']['SimulationModel'];
+export type SchemaSimulationResult = components['schemas']['SimulationResult'];
 export type SchemaComputerInstance = components['schemas']['ComputerInstance'];
 export type SchemaComputerSpecification = components['schemas']['ComputerSpecification'];
 export type SchemaRegionConnection = components['schemas']['RegionConnection'];
@@ -195,12 +214,35 @@ export type SchemaSimulationStructure = components['schemas']['SimulationStructu
 export type SchemaSimulationStartedDto = components['schemas']['SimulationStartedDto'];
 export type SchemaGeneticSimulationRequest = components['schemas']['GeneticSimulationRequest'];
 export type SchemaGoalSettings = components['schemas']['GoalSettings'];
-export type SchemaSimulationComputerInstance = components['schemas']['SimulationComputerInstance'];
-export type SchemaSimulationModel = components['schemas']['SimulationModel'];
-export type SchemaSimulationResult = components['schemas']['SimulationResult'];
 export type SchemaSimulationStatusDto = components['schemas']['SimulationStatusDto'];
 export type $defs = Record<string, never>;
 export interface operations {
+    runManualSimulation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": number[];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SimulationModel"];
+                };
+            };
+        };
+    };
     runRandomSimulation: {
         parameters: {
             query?: never;

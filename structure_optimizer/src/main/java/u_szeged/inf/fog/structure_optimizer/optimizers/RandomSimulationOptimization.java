@@ -2,10 +2,13 @@ package u_szeged.inf.fog.structure_optimizer.optimizers;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import u_szeged.inf.fog.structure_optimizer.dtos.GeneticSimulationRequest;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
+import u_szeged.inf.fog.structure_optimizer.services.ISimulationService;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
+import u_szeged.inf.fog.structure_optimizer.structures.SimulationStructure;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -22,11 +25,11 @@ public class RandomSimulationOptimization extends BaseSimulationOptimization {
     private final Thread worker;
 
     public RandomSimulationOptimization(
-            SimulationService service,
+            ISimulationService service,
             String id,
-            List<SimulationComputerInstance> computers,
+            SimulationStructure structure,
             int iterations) {
-        super(service, id, computers);
+        super(service, id, structure);
         this.iteraations = iterations;
 
         ClassLoader contextClassLoader = this.getClass().getClassLoader();

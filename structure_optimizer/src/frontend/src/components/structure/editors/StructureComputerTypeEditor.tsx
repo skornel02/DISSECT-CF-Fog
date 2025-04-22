@@ -149,6 +149,9 @@ export default function StructureComputerTypeEditor({
                         computerTypes: computerTypes.filter(
                           (r) => r.name !== params.data.name,
                         ),
+                        instances: _.instances?.filter(
+                          (r) => r.computerSpecification !== params.data.name,
+                        ),
                       }));
                     }}>
                     Delete
@@ -165,6 +168,25 @@ export default function StructureComputerTypeEditor({
           if (params.rowPinned) {
             setNewComputerSpec(params.data);
           } else {
+            if (
+              params.colDef.field === 'name' &&
+              computerTypes.filter((r) => r.name === params.newValue).length > 1
+            ) {
+              toast({
+                title: 'Error',
+                description: 'Computer type with this name already exists.',
+                variant: 'destructive',
+              });
+
+              params.data.name = params.oldValue;
+              params.api.refreshCells({
+                force: true,
+                columns: ['name'],
+                rowNodes: [params.node],
+              });
+              return;
+            }
+
             setStructure((_) => ({
               ..._,
               computerTypes: computerTypes.map((r) => {
@@ -172,6 +194,16 @@ export default function StructureComputerTypeEditor({
                   return params.data;
                 }
                 return r;
+              }),
+              instances: _.instances?.map((i) => {
+                if (
+                  params.colDef.field === 'name' &&
+                  i.computerSpecification === params.oldValue
+                ) {
+                  return { ...i, computerSpecification: params.data.name };
+                }
+
+                return i;
               }),
             }));
           }

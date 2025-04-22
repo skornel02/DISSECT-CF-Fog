@@ -36,7 +36,7 @@ export default function StructureRegionEditor({
   );
 
   return (
-    <div className="grid grid-cols-3">
+    <div className="grid grid-cols-3 gap-2">
       <div className="col-span-2">
         <Grid
           rowData={regions}
@@ -113,6 +113,14 @@ export default function StructureRegionEditor({
                           regions: regions.filter(
                             (r) => r.name !== params.data.name,
                           ),
+                          regionConnections: _.regionConnections?.filter(
+                            (r) =>
+                              r.from !== params.data.name &&
+                              r.to !== params.data.name,
+                          ),
+                          instances: _.instances?.filter(
+                            (i) => i.regionSpecification !== params.data.name,
+                          ),
                         }));
                       }}>
                       Delete
@@ -129,6 +137,27 @@ export default function StructureRegionEditor({
             if (params.rowPinned) {
               setNewRegion(params.data);
             } else {
+              console.log('Editing stopped', params);
+
+              if (
+                params.colDef.field === 'name' &&
+                regions.filter((r) => r.name === params.newValue).length > 1
+              ) {
+                toast({
+                  title: 'Error',
+                  description: 'Region with this name already exists.',
+                  variant: 'destructive',
+                });
+
+                params.data.name = params.oldValue;
+                params.api.refreshCells({
+                  force: true,
+                  columns: ['name'],
+                  rowNodes: [params.node],
+                });
+                return;
+              }
+
               setStructure((_) => ({
                 ..._,
                 regions: regions.map((r) => {
@@ -136,6 +165,43 @@ export default function StructureRegionEditor({
                     return params.data;
                   }
                   return r;
+                }),
+                regionConnections: _.regionConnections?.map((r) => {
+                  if (params.colDef.field === 'name') {
+                    if (
+                      r.from === params.oldValue &&
+                      r.to === params.oldValue
+                    ) {
+                      return {
+                        ...r,
+                        from: params.data.name,
+                        to: params.data.name,
+                      };
+                    } else if (r.from === params.oldValue) {
+                      return {
+                        ...r,
+                        from: params.data.name,
+                      };
+                    } else if (r.to === params.oldValue) {
+                      return {
+                        ...r,
+                        to: params.data.name,
+                      };
+                    }
+                  }
+                  return r;
+                }),
+                instances: _.instances?.map((i) => {
+                  if (
+                    params.colDef.field === 'name' &&
+                    i.regionSpecification === params.oldValue
+                  ) {
+                    return {
+                      ...i,
+                      regionSpecification: params.data.name,
+                    };
+                  }
+                  return i;
                 }),
               }));
             }

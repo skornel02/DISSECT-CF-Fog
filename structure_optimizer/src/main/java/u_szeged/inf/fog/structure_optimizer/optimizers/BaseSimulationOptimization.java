@@ -4,47 +4,50 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
+import u_szeged.inf.fog.structure_optimizer.services.ISimulationService;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
+import u_szeged.inf.fog.structure_optimizer.structures.RegionConnection;
+import u_szeged.inf.fog.structure_optimizer.structures.SimulationStructure;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @EqualsAndHashCode
 @Getter
 public abstract class BaseSimulationOptimization {
 
-    protected final SimulationService service;
+    protected final ISimulationService service;
 
     private final String id;
 
-    protected final List<SimulationComputerInstance> computerInstances;
-
     protected boolean isRunning = false;
+
+    protected SimulationStructure structure;
+
+    protected List<SimulationComputerInstance> computerInstances;
 
     protected List<SimulationModel> simulations = new CopyOnWriteArrayList<>();
 
     private OffsetDateTime lastUpdated;
 
     public BaseSimulationOptimization(
-            SimulationService service,
+            ISimulationService service,
             String id,
-            List<SimulationComputerInstance> computerInstances) {
+            SimulationStructure structure) {
         this.service = service;
         this.id = id;
-        this.computerInstances = computerInstances;
+        this.structure = structure;
 
+        this.computerInstances = createComputerInstanceListFromStructure(structure);
         this.lastUpdated = OffsetDateTime.now();
     }
 
     public String getSimulationType() {
         return switch (this) {
-            case RandomSimulationOptimization randomSimulationOptimization -> "Random";
-            case GeneticSimulationOptimization geneticSimulationOptimization -> "Genetic";
+            case RandomSimulationOptimization ignored -> "Random";
+            case GeneticSimulationOptimization ignored -> "Genetic";
             default -> "Unknown";
         };
     }
@@ -55,38 +58,50 @@ public abstract class BaseSimulationOptimization {
 
     public abstract boolean isDone();
 
-    public long getTotalSimulationCount() {
-        return simulations.size();
-    }
-
-    public long getFailedSimulationCount() {
-        return simulations.stream()
-                .filter(s -> s.getResult().map(res -> res.getException() != null).orElse(false))
-                .count();
-    }
-
-    public Optional<SimulationModel> getBestExecutionTimeSimulation()
-    {
-        return simulations.stream()
-                .filter(simulation -> simulation.getResult().isPresent())
-                .min(Comparator.comparingDouble(simulation -> simulation.getResult().get().getExecutionTime()));
-    }
-
-    public Optional<SimulationModel> getBestCostSimulation()
-    {
-        return simulations.stream()
-                .filter(simulation -> simulation.getResult().isPresent())
-                .min(Comparator.comparingDouble(simulation -> simulation.getResult().get().getTotalCost()));
-    }
-
-    public Optional<SimulationModel> getBestEnergySimulation()
-    {
-        return simulations.stream()
-                .filter(simulation -> simulation.getResult().isPresent())
-                .min(Comparator.comparingDouble(simulation -> simulation.getResult().get().getTotalEnergyConsumption()));
-    }
-
     public void updateLastUpdated() {
         this.lastUpdated = OffsetDateTime.now();
+    }
+
+
+    private List<SimulationComputerInstance> createComputerInstanceListFromStructure(SimulationStructure structure) {
+        return structure.getInstances()
+                .stream()
+                .map(instance -> {
+                    var computerType = structure.getComputerTypes()
+                            .stream()
+                            .filter(type -> type.name().equals(instance.computerSpecification()))
+                            .findFirst()
+                            .orElseThrow();
+
+                    var region = structure.getRegions()
+                            .stream()
+                            .filter(r -> r.name().equals(instance.regionSpecification()))
+                            .findFirst()
+                            .orElseThrow();
+
+                    var regionLatencyMap = new HashMap<String, Integer>();
+                    for (var targetRegion : structure.getRegions()) {
+                        regionLatencyMap.put(targetRegion.name(), structure.getRegionConnections()
+                                .stream()
+                                .filter((connection) -> connection.containsRegion(region.name()) && connection.containsRegion(targetRegion.name()))
+                                .findFirst()
+                                .map(RegionConnection::latency)
+                                .orElse(structure.getDefaultLatency()));
+                    }
+
+                    return new SimulationComputerInstance(
+                            0,
+                            region.name(),
+                            region.latitude(),
+                            region.longitude(),
+                            computerType.name(),
+                            computerType.cores(),
+                            computerType.processingPerTick(),
+                            computerType.memory(),
+                            computerType.pricePerTick(),
+                            regionLatencyMap
+                    );
+                })
+                .toList();
     }
 }

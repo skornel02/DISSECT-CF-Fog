@@ -1,15 +1,19 @@
 import Grid from '@/components/grid';
-import {
-  SchemaSimulationModel,
-} from '@/lib/backend';
+import { Button } from '@/components/ui/button';
+import { SchemaSimulationModel } from '@/lib/backend';
+import { client } from '@/lib/backend-client';
 import { ColDef } from 'ag-grid-community';
 import humanizeDuration from 'humanize-duration';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 export default function SimulationManual({
+  id,
   data,
+  refresh,
 }: {
+  id: string;
   data: SchemaSimulationModel[];
+  refresh: () => void;
 }) {
   const computerInstances = data[0].instances ?? [];
 
@@ -57,10 +61,30 @@ export default function SimulationManual({
     });
   }, [data, appliedFilters]);
 
+  const runManualEnabled = useMemo(
+    () => appliedFilters.every((filter) => filter !== null),
+    [appliedFilters],
+  );
+
+  const runManualSimulation = useCallback(async () => {
+    await client.POST('/api/simulations/{id}/manual', {
+      params: {
+        path: {
+          id,
+        },
+      },
+      body: appliedFilters.map((num) => num ?? 0),
+    });
+
+    refresh();
+  }, [id, appliedFilters, refresh]);
+
   return (
     <>
       <div className="flex items-center justify-between py-4">
-        <h2 className="text-lg font-semibold">Specify simulation instance count!</h2>
+        <h2 className="text-lg font-semibold">
+          Specify simulation instance count!
+        </h2>
       </div>
       <div className="h-[150px]">
         <Grid
@@ -73,80 +97,93 @@ export default function SimulationManual({
       <div className="flex items-center justify-between py-4">
         <h2 className="text-lg font-semibold">Matching simulation results</h2>
       </div>
-      <div className='h-full'>
 
-      <Grid
-        rowData={matchingSimulations}
-        columnDefs={[
-          {
-            headerName: 'Id',
-            field: 'id',
-            sortable: true,
-            filter: true,
-            hide: true,
-          },
-          {
-            headerName: 'Generation',
-            field: 'generation',
-            sortable: true,
-            filter: true,
-            enableRowGroup: true,
-            maxWidth: 60,
-          },
-          {
-            headerName: 'Status',
-            field: 'status',
-            sortable: true,
-            filter: true,
-            hide: false,
-            maxWidth: 110
-          },
-          {
-            headerName: 'Time',
-            field: 'result.executionTime',
-            sortable: true,
-            filter: true,
-            hide: false,
-            valueFormatter: ({ value }) =>
-              value ? humanizeDuration(value, {round: false }) : 'N/A',
-          },
-          {
-            headerName: 'Cost',
-            field: 'result.totalCost',
-            sortable: true,
-            filter: true,
-            hide: false,
-            valueFormatter: ({ value }) =>
-              value ? `${value.toFixed(2)} €` : 'N/A',
-            maxWidth: 110
-          },
-          {
-            headerName: 'Energy',
-            field: 'result.totalEnergyConsumption',
-            sortable: true,
-            filter: true,
-            hide: false,
-            valueFormatter: ({ value }) =>
-              value ? `${value.toFixed(2)} kWh` : 'N/A',
-            maxWidth: 110
-          },
-          {
-            headerName: 'Fitness',
-            field: 'fitness',
-            sortable: true,
-            filter: true,
-            hide: data.every((item) => item.fitness === 0),
-            maxWidth: 160
-          },
-          {
-            headerName: 'Best',
-            field: 'bestPhenotype',
-            maxWidth: 60,
-          },
-        ]}
-        rowGroupPanelShow='always'
-      />
-      </div>
+      {matchingSimulations.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-full">
+          <p className="text-lg font-semibold">No matching simulations</p>
+          <Button
+            variant="default"
+            className="mt-4"
+            onClick={runManualSimulation}
+            disabled={!runManualEnabled}>
+            Run simulation with these parameters
+          </Button>
+        </div>
+      ) : (
+        <div className="h-full">
+          <Grid
+            rowData={matchingSimulations}
+            columnDefs={[
+              {
+                headerName: 'Id',
+                field: 'id',
+                sortable: true,
+                filter: true,
+                hide: true,
+              },
+              {
+                headerName: 'Generation',
+                field: 'generation',
+                sortable: true,
+                filter: true,
+                enableRowGroup: true,
+                maxWidth: 60,
+              },
+              {
+                headerName: 'Status',
+                field: 'status',
+                sortable: true,
+                filter: true,
+                hide: false,
+                maxWidth: 110,
+              },
+              {
+                headerName: 'Time',
+                field: 'result.executionTime',
+                sortable: true,
+                filter: true,
+                hide: false,
+                valueFormatter: ({ value }) =>
+                  value ? humanizeDuration(value, { round: false }) : 'N/A',
+              },
+              {
+                headerName: 'Cost',
+                field: 'result.totalCost',
+                sortable: true,
+                filter: true,
+                hide: false,
+                valueFormatter: ({ value }) =>
+                  value ? `${value.toFixed(2)} €` : 'N/A',
+                maxWidth: 110,
+              },
+              {
+                headerName: 'Energy',
+                field: 'result.totalEnergyConsumption',
+                sortable: true,
+                filter: true,
+                hide: false,
+                valueFormatter: ({ value }) =>
+                  value ? `${value.toFixed(2)} kWh` : 'N/A',
+                maxWidth: 110,
+              },
+              {
+                headerName: 'Fitness',
+                field: 'fitness',
+                sortable: true,
+                filter: true,
+                hide: data.every((item) => item.fitness === 0),
+                maxWidth: 160,
+              },
+              {
+                headerName: 'Best',
+                field: 'bestPhenotype',
+                maxWidth: 60,
+              },
+            ]}
+            rowGroupPanelShow="always"
+          />
+        </div>
+      )}
     </>
   );
 }

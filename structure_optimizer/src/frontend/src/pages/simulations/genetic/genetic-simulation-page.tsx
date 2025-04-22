@@ -87,7 +87,9 @@ export default function GeneticSimulationPage() {
       <StructureEditor handleChange={setStructure} />
       <Separator className="my-2" />
       <div className="grid grid-cols-3 grid-flow-row mt-2">
+
         <div className="grid grid-cols-2 gap-2 items-center min-w-[150px]">
+          
           <Label htmlFor="timeWeight">Time weight</Label>
           <Input
             id="timeWeight"

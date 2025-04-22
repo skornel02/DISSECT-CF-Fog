@@ -6,10 +6,13 @@ import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import io.jenetics.engine.Limits;
 import lombok.Getter;
+import u_szeged.inf.fog.structure_optimizer.dtos.GeneticSimulationRequest;
 import u_szeged.inf.fog.structure_optimizer.enums.SimulationStatus;
 import u_szeged.inf.fog.structure_optimizer.models.GoalSettings;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationComputerInstance;
 import u_szeged.inf.fog.structure_optimizer.models.SimulationModel;
+import u_szeged.inf.fog.structure_optimizer.models.SimulationResult;
+import u_szeged.inf.fog.structure_optimizer.services.ISimulationService;
 import u_szeged.inf.fog.structure_optimizer.services.SimulationService;
 
 import java.time.LocalDateTime;
@@ -29,20 +32,20 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
 
     @Getter
     private final GoalSettings goalSettings;
+
     private final Thread worker;
 
     public GeneticSimulationOptimization(
-            SimulationService service,
+            ISimulationService service,
             String id,
-            GoalSettings goalSettings,
-            List<SimulationComputerInstance> computerInstances) {
-        super(service, id, computerInstances);
+            GeneticSimulationRequest request) {
+        super(service, id, request.getStructure());
 
-        var maxComputers = 10 * goalSettings.getTasksMultiplier();
+        var maxComputers = 10 * request.getGoalSettings().getTasksMultiplier();
 
         contextClassLoader = this.getClass().getClassLoader();
 
-        this.goalSettings = goalSettings;
+        this.goalSettings = request.getGoalSettings();
 
         worker = new Thread(() -> {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -93,6 +96,43 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
         });
     }
 
+    public int getPricePenalty(SimulationResult result) {
+        var price = result.getTotalCost();
+
+        if (goalSettings.getMaximumPrice() != null && price > goalSettings.getMaximumPrice()) {
+            return 100;
+        }
+
+        return 1;
+    }
+
+    public double calculateFitness(SimulationResult result)
+    {
+        if (result.getException() != null) {
+            return goalSettings.isMinimizingCost() ? Double.MAX_VALUE : Double.MIN_VALUE;
+        }
+
+        var execTime = result.getExecutionTime();
+        var price = result.getTotalCost();
+        var energy = result.getTotalEnergyConsumption();
+
+        var pricePenalty = getPricePenalty(result);
+        price = goalSettings.isMinimizingCost()
+                ? price * pricePenalty
+                : price / pricePenalty;
+
+        if (goalSettings.getMaximumPrice() != null && price > goalSettings.getMaximumPrice()) {
+
+            price = goalSettings.isMinimizingCost()
+                    ? price * 100
+                    : price / 100;
+        }
+
+        return execTime * goalSettings.getTimeWeight()
+                + price * goalSettings.getPriceWeight()
+                + energy * goalSettings.getEnergyWeight();
+    }
+
     private Function<Genotype<IntegerGene>, Double> evalPidGenes() {
         return (gt) -> {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -120,27 +160,10 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
 
             updateLastUpdated();
 
-            if (result.getException() != null) {
-                simulation.setFitness(-1);
-                return goalSettings.isMinimizingCost() ? Double.MAX_VALUE : Double.MIN_VALUE;
-            }
-
-            var execTime = result.getExecutionTime();
-            var price = result.getTotalCost();
-            var energy = result.getTotalEnergyConsumption();
-
-            if (goalSettings.getMaximumPrice() != null && price > goalSettings.getMaximumPrice()) {
-                price = goalSettings.isMinimizingCost()
-                    ? price * 100
-                    : price / 100;
-                simulation.setPricePenalty(100);
-            }
-
-            var fitness = execTime * goalSettings.getTimeWeight()
-                    + price * goalSettings.getPriceWeight()
-                    + energy * goalSettings.getEnergyWeight();
+            var fitness = calculateFitness(result);
 
             simulation.setFitness(fitness);
+            simulation.setPricePenalty(getPricePenalty(result));
 
             return fitness;
         };
