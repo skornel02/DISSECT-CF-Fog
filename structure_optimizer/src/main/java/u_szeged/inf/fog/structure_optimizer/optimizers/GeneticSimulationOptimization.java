@@ -62,8 +62,8 @@ public class GeneticSimulationOptimization extends BaseSimulationOptimization {
                     .builder(evalPidGenes(), hasStructureConstraint.constrain(gtf))
                     .optimize(goalSettings.isMinimizingCost() ? Optimize.MINIMUM : Optimize.MAXIMUM)
                     .alterers(
-                            new Mutator<>(0.5),
-                            new UniformCrossover<>(0.1, 0.25)
+                            new Mutator<>(0.2),
+                            new UniformCrossover<>(0.1, 0.20)
                     )
                     .populationSize(goalSettings.getPopulationSize())
                     .selector(goalSettings.isUseRandom()
